@@ -5,7 +5,8 @@ from copy import deepcopy
 from Sequence.sequence_model import COORDS
 from Sequence.sequence_utils import EMPTY
 
-MAX_THINK_TIME = 1
+MAX_THINK_TIME = 0.95
+SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
 
 class myAgent(Agent):
@@ -82,8 +83,8 @@ class myAgent(Agent):
         agent_id = self.id
 
         for a1 in actions:
-            if time.perf_counter() - start_time > MAX_THINK_TIME:
-                break
+            if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
+                return random.choice(actions)
 
             if a1['type'] != 'place' or a1['coords'] is None:
                 continue
@@ -120,18 +121,59 @@ class myAgent(Agent):
 
     def get_place_actions_on_board(self, board, hand, draft):
         actions = []
+        fallback_limit = 12  # Max jack placements to avoid explosion
+        CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
+
+        # Step 1: Identify all board coords that could be placed by non-jack cards in hand
+        card_targets = set()
         for card in hand:
-            if card in ['jd', 'jc']:  # double-eye jacks
-                for r in range(10):
-                    for c in range(10):
-                        if board[r][c] == EMPTY:
-                            for d in draft:
-                                actions.append({'type': 'place', 'coords': (r, c), 'play_card': card, 'draft_card': d})
-            else:
+            if card not in ['jd', 'jc']:  # Ignore jacks
+                for pos in COORDS.get(card, []):
+                    if board[pos[0]][pos[1]] == EMPTY:
+                        card_targets.add(pos)
+
+        # Step 2: Build actions
+        for card in hand:
+            if card in ['jd', 'jc']:  # Double-eye jack logic
+                jack_moves = []
+
+                # First priority: CENTER tiles not playable by hand
+                for pos in CENTER_COORDS:
+                    if board[pos[0]][pos[1]] == EMPTY and pos not in card_targets:
+                        jack_moves.append(pos)
+
+                # Fallback: Any other unplayable empty tile, sorted by center proximity
+                if not jack_moves:
+                    for r in range(10):
+                        for c in range(10):
+                            if board[r][c] == EMPTY and (r, c) not in card_targets:
+                                jack_moves.append((r, c))
+
+                    jack_moves.sort(key=lambda pos: abs(pos[0] - 4.5) + abs(pos[1] - 4.5))
+
+                # Add actions for selected jack targets
+                for (r, c) in jack_moves[:fallback_limit]:
+                    for d in draft:
+                        actions.append({
+                            'type': 'place',
+                            'coords': (r, c),
+                            'play_card': card,
+                            'draft_card': d
+                        })
+
+            else:  # Normal card logic
+                added = set()
                 for r, c in COORDS.get(card, []):
-                    if board[r][c] == EMPTY:
+                    if board[r][c] == EMPTY and (r, c) not in added:
+                        added.add((r, c))
                         for d in draft:
-                            actions.append({'type': 'place', 'coords': (r, c), 'play_card': card, 'draft_card': d})
+                            actions.append({
+                                'type': 'place',
+                                'coords': (r, c),
+                                'play_card': card,
+                                'draft_card': d
+                            })
+
         return actions
 
     def CountAlignedChips(self, board, row, col, d_row, d_col, player_colour):
