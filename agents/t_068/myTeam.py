@@ -81,6 +81,10 @@ class myAgent(Agent):
         start_time = time.perf_counter()
         best_score, best_action = float('-inf'), None
         agent_id = self.id
+        original_hand = state.agents[agent_id].hand
+        original_draft = state.board.draft
+
+        full_deck = [r + s for r in '23456789tjqka' for s in 'dchs'] * 2  # 2 decks
 
         for a1 in actions:
             if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
@@ -89,15 +93,32 @@ class myAgent(Agent):
             if a1['type'] != 'place' or a1['coords'] is None:
                 continue
 
-            # Simulate the board
+            # Step 1: Simulate first move board
             board1 = self.SimulatedBoard(state, a1, agent_id)
             score1 = self.HeuristicBoard(board1, a1['coords'], state, agent_id)
 
-            second_actions = self.get_place_actions_on_board(board1, state.agents[agent_id].hand, state.board.draft)
+            # Step 2: Simulate hand and draft after first move
+            new_hand = original_hand.copy()
+            if a1['play_card'] in new_hand:
+                new_hand.remove(a1['play_card'])
+            new_hand.append(a1['draft_card'])
+
+            new_draft = original_draft.copy()
+            if a1['draft_card'] in new_draft:
+                new_draft.remove(a1['draft_card'])
+
+            # Simulate a new random draft card (optional guess)
+            seen_cards = set(original_hand + original_draft)
+            available = [c for c in full_deck if c not in seen_cards]
+            if available:
+                new_draft.append(random.choice(available))
+
+            # Step 3: Generate second actions based on simulated future
+            second_actions = self.get_place_actions_on_board(board1, new_hand, new_draft)
 
             best_future = 0
             for a2 in second_actions:
-                if time.perf_counter() - start_time > MAX_THINK_TIME:
+                if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
                     break
                 score2 = self.HeuristicBoard(board1, a2['coords'], state, agent_id)
                 best_future = max(best_future, score2)
