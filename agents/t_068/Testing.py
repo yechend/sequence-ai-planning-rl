@@ -2,13 +2,14 @@ from template import Agent
 from Sequence.sequence_model import SequenceGameRule as GameRule
 import time, random
 from copy import deepcopy
-from Sequence.sequence_model import COORDS
-from Sequence.sequence_utils import EMPTY, RED, BLU, RED_SEQ, BLU_SEQ
+from Sequence.sequence_model import COORDS, BOARD
+from Sequence.sequence_utils import EMPTY
+from collections import Counter
 
 MAX_THINK_TIME = 0.95
 SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
-
+CARD_COUNTS = Counter(card for row in BOARD for card in row)
 class myAgent(Agent):
     def __init__(self, _id):
         super().__init__(_id)
@@ -142,33 +143,28 @@ class myAgent(Agent):
 
     def get_place_actions_on_board(self, board, hand, draft):
         actions = []
-        fallback_limit = 12
+        fallback_limit = 12  # Max jack placements to avoid explosion
         CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
 
-        # Determine player and opponent colours
-        player_colour = RED if self.id % 2 == 0 else BLU
-        opponent_colour = BLU if player_colour == RED else RED
-        opponent_seq_colour = BLU_SEQ if player_colour == RED else RED_SEQ
-
-        # Step 1: Identify all coords that normal cards can be played on
+        # Step 1: Identify all board coords that could be placed by non-jack cards in hand
         card_targets = set()
         for card in hand:
-            if card not in ['jd', 'jc', 'jh', 'js']:  # Only regular cards
+            if card not in ['jd', 'jc']:  # Ignore jacks
                 for pos in COORDS.get(card, []):
                     if board[pos[0]][pos[1]] == EMPTY:
                         card_targets.add(pos)
 
-        # Step 2: Build actions for all cards
+        # Step 2: Build actions
         for card in hand:
-            if card in ['jd', 'jc']:  # Double-eye jack logic: place anywhere
+            if card in ['jd', 'jc']:  # Double-eye jack logic
                 jack_moves = []
 
-                # Priority: center if not playable normally
+                # First priority: CENTER tiles not playable by hand
                 for pos in CENTER_COORDS:
                     if board[pos[0]][pos[1]] == EMPTY and pos not in card_targets:
                         jack_moves.append(pos)
 
-                # Fallback: any empty tile not already targetable
+                # Fallback: Any other unplayable empty tile, sorted by center proximity
                 if not jack_moves:
                     for r in range(10):
                         for c in range(10):
@@ -177,6 +173,7 @@ class myAgent(Agent):
 
                     jack_moves.sort(key=lambda pos: abs(pos[0] - 4.5) + abs(pos[1] - 4.5))
 
+                # Add actions for selected jack targets
                 for (r, c) in jack_moves[:fallback_limit]:
                     for d in draft:
                         actions.append({
@@ -186,29 +183,7 @@ class myAgent(Agent):
                             'draft_card': d
                         })
 
-            elif card in ['jh', 'js']:  # One-eye jack: remove opponent chip
-                best_target = None
-                max_alignment = 0
-
-                for r in range(10):
-                    for c in range(10):
-                        if board[r][c] == opponent_colour:
-                            for d_row, d_col in [(0, 1), (1, 0), (1, 1), (1, -1)]:
-                                aligned, _ = self.CountAlignedChips(board, r, c, d_row, d_col, opponent_colour)
-                                if aligned > max_alignment:
-                                    max_alignment = aligned
-                                    best_target = (r, c)
-
-                if best_target:
-                    for d in draft:
-                        actions.append({
-                            'type': 'remove',
-                            'coords': best_target,
-                            'play_card': card,
-                            'draft_card': d
-                        })
-
-            else:  # Normal cards
+            else:  # Normal card logic
                 added = set()
                 for r, c in COORDS.get(card, []):
                     if board[r][c] == EMPTY and (r, c) not in added:
@@ -267,14 +242,27 @@ class myAgent(Agent):
             return 0
 
         r, c = coords
+        card = BOARD[r][c]
         colour = state.agents[agent_id].colour
-        score = max(0, 5 - abs(r - 4.5) - abs(c - 4.5)) * 1.5
+        score = 0
 
+        # 1. 🔶 HOTB card bonus (encourage early placement)
+        if (r, c) in CENTER_COORDS:
+            score += 2
+
+        # 2. 🟦 Card rarity bonus (cards that appear only once)
+        if CARD_COUNTS.get(card, 0) == 1:
+            score += 4
+        elif CARD_COUNTS.get(card, 0) == 2:
+            score += 2
+
+        # 3. 🟨 Center bonus (stronger board control)
+        score += max(0, 5 - abs(r - 4.5) - abs(c - 4.5)) * 1.5
+
+        # 4. 🟩 Line-building score
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
-
         for d_row, d_col in directions:
             aligned, open_ends = self.CountAlignedChips(board, r, c, d_row, d_col, colour)
-
             if aligned >= 5:
                 score += 200
             elif aligned == 4 and open_ends >= 1:
