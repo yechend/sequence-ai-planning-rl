@@ -2,13 +2,14 @@ from template import Agent
 from Sequence.sequence_model import SequenceGameRule as GameRule
 import time, random
 from copy import deepcopy
-from Sequence.sequence_model import COORDS
+from Sequence.sequence_model import COORDS, BOARD
 from Sequence.sequence_utils import EMPTY
+from collections import Counter
 
 MAX_THINK_TIME = 0.95
 SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
-
+CARD_COUNTS = Counter(card for row in BOARD for card in row)
 class myAgent(Agent):
     def __init__(self, _id):
         super().__init__(_id)
@@ -241,14 +242,27 @@ class myAgent(Agent):
             return 0
 
         r, c = coords
+        card = BOARD[r][c]
         colour = state.agents[agent_id].colour
-        score = max(0, 5 - abs(r - 4.5) - abs(c - 4.5)) * 1.5
+        score = 0
 
+        # 1. 🔶 HOTB card bonus (encourage early placement)
+        if (r, c) in CENTER_COORDS:
+            score += 8
+
+        # 2. 🟦 Card rarity bonus (cards that appear only once)
+        if CARD_COUNTS.get(card, 0) == 1:
+            score += 4
+        elif CARD_COUNTS.get(card, 0) == 2:
+            score += 2
+
+        # 3. 🟨 Center bonus (stronger board control)
+        score += max(0, 5 - abs(r - 4.5) - abs(c - 4.5)) * 1.5
+
+        # 4. 🟩 Line-building score
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
-
         for d_row, d_col in directions:
             aligned, open_ends = self.CountAlignedChips(board, r, c, d_row, d_col, colour)
-
             if aligned >= 5:
                 score += 200
             elif aligned == 4 and open_ends >= 1:
