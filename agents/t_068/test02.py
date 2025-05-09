@@ -52,31 +52,31 @@ class myAgent(Agent):
         return self.TwoStepLookaheadSearch(actions, game_state)
 
     # First Method - Single Step Greedy Best First Search Agent
-    # def GreedyBestFirstSearch(self, actions, game_state):
-    #     start_time = time.time()
-    #     best_score = float('-inf')
-    #     best_actions = []
-    #
-    #     for action in actions:
-    #         if time.time() - start_time > MAX_THINK_TIME:
-    #             break
-    #
-    #         if action['type'] not in ['place', 'remove'] or not action['coords']:
-    #             continue
-    #
-    #         score = self.heuristic(game_state, action)
-    #
-    #         if score > best_score:
-    #             best_score = score
-    #             best_actions = [action]
-    #         elif score == best_score:
-    #             best_actions.append(action)
-    #
-    #     if best_actions:
-    #         return random.choice(best_actions)
-    #     else:
-    #         non_trade = [a for a in actions if a['type'] != 'trade']
-    #         return random.choice(non_trade) if non_trade else random.choice(actions)
+    def GreedyBestFirstSearch(self, actions, game_state):
+        start_time = time.time()
+        best_score = float('-inf')
+        best_actions = []
+
+        for action in actions:
+            if time.time() - start_time > MAX_THINK_TIME:
+                break
+
+            if action['type'] not in ['place', 'remove'] or not action['coords']:
+                continue
+
+            score = self.heuristic(game_state, action)
+
+            if score > best_score:
+                best_score = score
+                best_actions = [action]
+            elif score == best_score:
+                best_actions.append(action)
+
+        if best_actions:
+            return random.choice(best_actions)
+        else:
+            non_trade = [a for a in actions if a['type'] != 'trade']
+            return random.choice(non_trade) if non_trade else random.choice(actions)
 
     def TwoStepLookaheadSearch(self, actions, state):
         start_time = time.perf_counter()
