@@ -214,9 +214,9 @@ class myAgent(Agent):
                     open_ends += 1
                     break
                 else:
-                    break  # blocked by opponent
+                    break
             else:
-                break  # edge of board
+                break
 
         # Check backward direction
         backward_count = 0
