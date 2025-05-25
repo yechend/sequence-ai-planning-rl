@@ -43,42 +43,81 @@ class myAgent(Agent):
 
         return None
 
-    def SelectAction(self, actions, game_state):
-        """Main entry point — pick a winning move or fall back to heuristic-based strategy."""
-        winning_move = self.FindImmediateWin(actions, game_state, self.id)
+    def SelectAction(self, actions, state):
+        board = state.board.chips
+        agent_state = state.agents[self.id]
+        opponent_colour = agent_state.opp_colour
 
+        # 1. Priority: Use One-Eyed Jack to remove a critical opponent chip
+        target = self.find_critical_opponent_chip(board, opponent_colour)
+        if target:
+            for card in agent_state.hand:
+                if card in ['jh', 'js']:  # one-eyed jacks
+                    for draft_card in state.board.draft:
+                        return {
+                            'type': 'remove',
+                            'coords': target,
+                            'play_card': card,
+                            'draft_card': draft_card
+                        }
+
+        # 2. Priority: Use Two-Eyed Jack to complete a win or block opponent
+        for card in agent_state.hand:
+            if card in ['jd', 'jc']:  # two-eyed jacks
+                best_jack_move = None
+                best_jack_score = -float('inf')
+                for r in range(10):
+                    for c in range(10):
+                        if board[r][c] != EMPTY:
+                            continue
+                        coords = (r, c)
+                        board_copy = deepcopy(board)
+                        board_copy[r][c] = agent_state.colour
+                        score = self.HeuristicBoard(board_copy, coords, state, self.id)
+                        if score > best_jack_score:
+                            best_jack_score = score
+                            best_jack_move = {
+                                'type': 'place',
+                                'coords': coords,
+                                'play_card': card,
+                                'draft_card': random.choice(state.board.draft)  # pick one for now
+                            }
+                if best_jack_move:
+                    return best_jack_move
+
+        # 3. Winning move if available
+        winning_move = self.FindImmediateWin(actions, state, self.id)
         if winning_move:
             return winning_move
 
-        return self.TwoStepLookaheadSearch(actions, game_state)
+        # 4. Two-step heuristic search
+        return self.TwoStepLookaheadSearch(actions, state)
 
-    # Tested Method - Single Step Greedy Best First Search Agent
-    # def GreedyBestFirstSearch(self, actions, game_state):
-    #     start_time = time.time()
-    #     best_score = float('-inf')
-    #     best_actions = []
-    #
-    #     for action in actions:
-    #         if time.time() - start_time > MAX_THINK_TIME - SAFETY_BUFFER :
-    #             break
-    #
-    #         if action['type'] not in ['place', 'remove'] or not action['coords']:
-    #             continue
-    #
-    #         score = self.heuristic(game_state, action)
-    #
-    #         if score > best_score:
-    #             best_score = score
-    #             best_actions = [action]
+    def find_critical_opponent_chip(self, board, opponent_colour):
+        """
+        Search for opponent chips that are part of 4-aligned sequences with at least 1 open end.
+        Return coordinates of such a chip (prioritized), else None.
+        """
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        candidates = []
 
-    #         elif score == best_score:
-    #             best_actions.append(action)
-    #
-    #     if best_actions:
-    #         return random.choice(best_actions)
-    #     else:
-    #         non_trade = [a for a in actions if a['type'] != 'trade']
-    #         return random.choice(non_trade) if non_trade else random.choice(actions)
+        for r in range(10):
+            for c in range(10):
+                if board[r][c] != opponent_colour:
+                    continue
+
+                for d_row, d_col in directions:
+                    aligned, open_ends = self.CountAlignedChips(board, r, c, d_row, d_col, opponent_colour)
+
+                    # Heuristic: 4-in-a-row with open ends is a dangerous threat
+                    if aligned == 4 and open_ends >= 1:
+                        # Double-check this chip is not part of a sequence (cannot be removed)
+                        # You may add an `is_sequence_chip(r, c)` check if that info is tracked
+                        candidates.append((r, c))
+
+        # Prioritize center-adjacent threats
+        candidates.sort(key=lambda pos: abs(pos[0] - 4.5) + abs(pos[1] - 4.5))
+        return candidates[0] if candidates else None
 
     # Final Chosen Method - Two-Step GBFS
     def SimulatedBoard(self, state, action, agent_id):
