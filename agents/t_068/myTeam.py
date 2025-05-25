@@ -43,81 +43,14 @@ class myAgent(Agent):
 
         return None
 
-    def SelectAction(self, actions, state):
-        board = state.board.chips
-        agent_state = state.agents[self.id]
-        opponent_colour = agent_state.opp_colour
+    def SelectAction(self, actions, game_state):
+        """Main entry point — pick a winning move or fall back to heuristic-based strategy."""
+        winning_move = self.FindImmediateWin(actions, game_state, self.id)
 
-        # 1. Priority: Use One-Eyed Jack to remove a critical opponent chip
-        target = self.find_critical_opponent_chip(board, opponent_colour)
-        if target:
-            for card in agent_state.hand:
-                if card in ['jh', 'js']:  # one-eyed jacks
-                    for draft_card in state.board.draft:
-                        return {
-                            'type': 'remove',
-                            'coords': target,
-                            'play_card': card,
-                            'draft_card': draft_card
-                        }
-
-        # 2. Priority: Use Two-Eyed Jack to complete a win or block opponent
-        for card in agent_state.hand:
-            if card in ['jd', 'jc']:  # two-eyed jacks
-                best_jack_move = None
-                best_jack_score = -float('inf')
-                for r in range(10):
-                    for c in range(10):
-                        if board[r][c] != EMPTY:
-                            continue
-                        coords = (r, c)
-                        board_copy = deepcopy(board)
-                        board_copy[r][c] = agent_state.colour
-                        score = self.HeuristicBoard(board_copy, coords, state, self.id)
-                        if score > best_jack_score:
-                            best_jack_score = score
-                            best_jack_move = {
-                                'type': 'place',
-                                'coords': coords,
-                                'play_card': card,
-                                'draft_card': random.choice(state.board.draft)  # pick one for now
-                            }
-                if best_jack_move:
-                    return best_jack_move
-
-        # 3. Winning move if available
-        winning_move = self.FindImmediateWin(actions, state, self.id)
         if winning_move:
             return winning_move
 
-        # 4. Two-step heuristic search
-        return self.TwoStepLookaheadSearch(actions, state)
-
-    def find_critical_opponent_chip(self, board, opponent_colour):
-        """
-        Search for opponent chips that are part of 4-aligned sequences with at least 1 open end.
-        Return coordinates of such a chip (prioritized), else None.
-        """
-        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
-        candidates = []
-
-        for r in range(10):
-            for c in range(10):
-                if board[r][c] != opponent_colour:
-                    continue
-
-                for d_row, d_col in directions:
-                    aligned, open_ends = self.CountAlignedChips(board, r, c, d_row, d_col, opponent_colour)
-
-                    # Heuristic: 4-in-a-row with open ends is a dangerous threat
-                    if aligned == 4 and open_ends >= 1:
-                        # Double-check this chip is not part of a sequence (cannot be removed)
-                        # You may add an `is_sequence_chip(r, c)` check if that info is tracked
-                        candidates.append((r, c))
-
-        # Prioritize center-adjacent threats
-        candidates.sort(key=lambda pos: abs(pos[0] - 4.5) + abs(pos[1] - 4.5))
-        return candidates[0] if candidates else None
+        return self.TwoStepLookaheadSearch(actions, game_state)
 
     # Final Chosen Method - Two-Step GBFS
     def SimulatedBoard(self, state, action, agent_id):
@@ -187,11 +120,28 @@ class myAgent(Agent):
         # Evaluate alignment in all four directions
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
 
+        alignment_scores = []
         for d_row, d_col in directions:
             aligned, open_ends = self.CountAlignedChips(board, r, c, d_row, d_col, colour)
 
             if aligned >= 5:
                 score += 200
+                # Check for 6-in-a-row by extending one more in both directions
+                # cnt = 1
+                # for step in range(1, 6):
+                #     nr, nc = r + d_row * step, c + d_col * step
+                #     if 0 <= nr < 10 and 0 <= nc < 10 and board[nr][nc] == colour:
+                #         cnt += 1
+                #     else:
+                #         break
+                # for step in range(1, 6):
+                #     nr, nc = r - d_row * step, c - d_col * step
+                #     if 0 <= nr < 10 and 0 <= nc < 10 and board[nr][nc] == colour:
+                #         cnt += 1
+                #     else:
+                #         break
+                # if cnt >= 6:
+                #     score += 10  # Bonus for 6-in-a-row
             elif aligned == 4 and open_ends >= 1:
                 score += 90
             elif aligned == 3 and open_ends == 2:
@@ -200,6 +150,14 @@ class myAgent(Agent):
                 score += 20
             else:
                 score += 2
+
+            # Collect fork potentials
+            if aligned >= 3 and open_ends >= 1:
+                alignment_scores.append(aligned)
+
+        # Fork bonus
+        if len(alignment_scores) >= 2:
+            score += (len(alignment_scores) - 1) * 10
 
         return score
 
