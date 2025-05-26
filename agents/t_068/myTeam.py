@@ -1,12 +1,3 @@
-
-# Complete, integrated Sequence agent with:
-# - Immediate win detection
-# - Two-step GBFS
-# - 6-in-a-row bonus
-# - Fork detection
-# - Smart discard logic (dead cards, low-value discard)
-# - Two-dead-card trade simulation if 2+ dead cards found
-
 from template import Agent
 from Sequence.sequence_model import SequenceGameRule as GameRule
 import time, random
