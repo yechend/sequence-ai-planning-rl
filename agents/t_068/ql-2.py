@@ -183,7 +183,7 @@ class myAgent(Agent):
             json.dump(self.weights, f)
 
     def get_reward(self, state):
-        return state.agents[self.id].completed_seqs
+        return state.agents[self.id].completed_seqs # Basic
 
     def copy_state(self, state):
         from copy import deepcopy

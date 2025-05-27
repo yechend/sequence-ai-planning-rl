@@ -8,7 +8,7 @@ from Sequence.sequence_utils import EMPTY
 MAX_THINK_TIME = 0.95
 SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
-
+FULL_DECK = [r + s for r in '23456789tjqka' for s in 'dchs'] * 2
 class myAgent(Agent):
     def __init__(self, _id):
         super().__init__(_id)
@@ -42,7 +42,7 @@ class myAgent(Agent):
         if len(dead_cards) >= 2:
             # Simulate trade
             traded_card = random.choice(
-                [c for c in self.rule.full_deck if c not in game_state.agents[self.id].hand])
+                [c for c in FULL_DECK if c not in game_state.agents[self.id].hand])
             hand = game_state.agents[self.id].hand.copy()
             hand.remove(dead_cards[0])
             hand.append(traded_card)
@@ -168,7 +168,6 @@ class myAgent(Agent):
         agent_id = self.id
         original_hand = state.agents[agent_id].hand
         original_draft = state.board.draft
-        full_deck = [r + s for r in '23456789tjqka' for s in 'dchs'] * 2
 
         for a1 in actions:
             if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
@@ -185,7 +184,7 @@ class myAgent(Agent):
             if a1['draft_card'] in new_draft:
                 new_draft.remove(a1['draft_card'])
             seen_cards = set(original_hand + original_draft)
-            available = [c for c in full_deck if c not in seen_cards]
+            available = [c for c in FULL_DECK if c not in seen_cards]
             if available:
                 new_draft.append(random.choice(available))
             second_actions = self.GeneratePlacingActions(board1, new_hand, new_draft, state)
