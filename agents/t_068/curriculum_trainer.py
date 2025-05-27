@@ -61,7 +61,7 @@ def self_play_game(opponent):
     return states, actions, winner
 
 # Training data with soft labels
-def generate_curriculum_data(opponents, n_games=2):
+def generate_curriculum_data(opponents, n_games=4000):
     X_states, y_policy, y_value = [], [], []
     for _ in tqdm(range(n_games), desc="Generating Self-Play Data"):
         path = random.choices([p for p, _ in opponents], weights=[w for _, w in opponents])[0]
@@ -110,11 +110,11 @@ def train_curriculum_model():
         ("agents.generic.blockerAgent.myAgent", 0.04)
     ]
     print("Starting curriculum training...")
-    X, y_policy, y_value = generate_curriculum_data(opponents, n_games=2)
+    X, y_policy, y_value = generate_curriculum_data(opponents, n_games=4000)
     print("Data shapes:", X.shape, y_policy.shape, y_value.shape)
     model = build_model(X.shape[1], SequenceState.get_action_space_size())
     model.fit(X, [y_policy, y_value], epochs=10, batch_size=32, validation_split=0.1, verbose=2)
-    model.save("policy_value_model_curriculum_soft.h5")
+    model.save("policy_value_model_curriculum.keras")
     print("✅ Saved curriculum-trained model with soft labels.")
 
 if __name__ == '__main__':
