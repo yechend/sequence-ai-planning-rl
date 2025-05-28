@@ -8,11 +8,11 @@ Our final agent incorporates realistic gameplay elements such as random draft ca
   * [Motivation](#motivation)
   * [Application](#application)
   * [Experiments](#experiments)
-  * [Solved challenges](#solved-challenges)
+  * [Solved Challenges](#solved-challenges)
   * [Trade-offs](#trade-offs)     
      - [Advantages](#advantages)
      - [Disadvantages](#disadvantages)
-  * [Future improvements](#future-improvements)
+  * [Future Improvements](#future-improvements)
  
 ### Motivation  
 
@@ -77,7 +77,7 @@ While the 3-step model offered better tactical foresight in theory, it underperf
 
 To enhance decision-making, we integrated opponent-aware heuristic tuning and explored basic card inference logic. These adjustments aim to penalise board states that are strategically advantageous to the opponent, aligning with defensive priorities.
 
-- **Tuning parameter**:
+- **Tuning Parameter**:
 
   The tuning parameter α controlled the weights of the opponent's heuristic score under `HeuristicScore`. We experimented with different settings with their associated win rate against the baseline model.
 
@@ -88,22 +88,22 @@ To enhance decision-making, we integrated opponent-aware heuristic tuning and ex
 
   This suggests that focusing purely on the agent’s score (`α = 0`) was more effective in practice, likely due to the simplicity and consistency of self-oriented evaluation under tight time constraints.
 
-- **Opponent-aware heuristic penalty**:  
+- **Opponent-aware Heuristic Penalty**:  
   We further tested applying a penalty in the heuristic if the opponent had:
   - 4 aligned chips with one open end (imminent threat)
   - 3 aligned chips with two open ends (high potential threat)
 
   This logic was embedded into both the `HeuristicScore` function and a pre-search check to ensure emergency blocking actions are prioritised (e.g., one-eyed Jack removals or direct placements to deny key spots). However, this method provided no noticeable performance improvement. We hypothesise that the added complexity diluted the agent’s focus on its strategic buildup, especially under the tight time constraint per move.
 
-- **Card Inference (Experimental)**:  
+- **Card Inference**:  
 
   While we considered integrating card memory to estimate the likelihood of the opponent possessing a specific card (i.e., if both copies had been seen), this was not ultimately implemented due to complexity and time cost. The agent assumes the worst-case scenario for critical threats, which is a safer but less advanced approach.
 
-**5. Sequence Extension Bonus & Fork Detection**
+**5. Sequence Extension Bonus & Fork Detection (Implemented)**
 
 Since the heuristic function is the core of the agent’s decision-making in the GBFS framework, we initially added a small bonus for placements that would extend to 6-in-a-row under exiting 4-in-a-row (which doesn’t count as a second sequence by rules), recognising the strategic value of overlapping sequence plans. But this did improve the performance due to its limited impact on game outcomes. We then experimented with **fork detection** by evaluating how many sequence lines that position could extend. If a tile contributes to multiple alignment directions, it’s awarded extra points to reflect forming a sequence potential. This refinement raised the local win rate to 55% against the baseline model and was subsequently adopted in our final heuristic design.
 
-**6. Card Discard Logic**
+**6. Card Discard Logic (Implemented)**
 
 We further employed a two-level discard strategy to maintain hand efficiency and avoid wasted turns:
 
@@ -112,9 +112,6 @@ We further employed a two-level discard strategy to maintain hand efficiency and
 
 - **Low-Value Card Discard**:  
   If no dead cards are found, the agent evaluates all playable cards using the heuristic function and discards the one with the lowest strategic potential.
-
-- **Two Dead Card Trade**:  
-  If the agent holds two or more dead cards, it simulates a trade for a new card and re-evaluates placement options with the updated hand. This ensures improved move quality in the subsequent step.
 
 This deployment achieved a 57.5% win rate against our previously refined model from **5. – Sequence Extension Bonus & Fork Detection**. In online testing, it reached a peak performance of 33 wins out of 40 games. We included this refinement in our final agent.
 <img width="1378" alt="image" src="https://github.com/user-attachments/assets/db5fa0ca-b5f7-4cf2-90e7-ca7f8a83150a" />
@@ -126,7 +123,7 @@ To better use the 15-second pregame loading time, we explored offline policy tra
 
 - Initially, we deployed `train_sequence_policy.py` to train against the random agent. But its evaluation metrics (accuracy of the policy head, mean Absolute Error (MAE) of the value head, the validation accuracy of the policy head, the validation MAE of the value head) suggested severe underfitting and might not be learning meaningful action patterns.
 - To resolve this, we further deployed `curriculum_trainer.py` to self-play using curriculum learning over 4,000 games against diverse opponents (random 48%, blocker 4%, and our GBFS agent 48%). Due to time limitations, this allocation hadn't been tuned properly to select the optimal split and no other agents were used to train this final model (`policy_value_model_curriculum.keras`). The final training results showed limited improvements as compared to the first training method. 
-  | Metric              | Random-Only (Before) | Curriculum (Now)  |
+  | Metric              | Random-Only | Curriculum  |
   |-------------------------|--------------------------|------------------------|
   | `policy_accuracy`       | ~0.014 → 0.086           | 0.009 → 0.106      |
   | `value_mae`             | ~0.42 → 0.03             | 0.38 → 0.03        |
@@ -144,16 +141,36 @@ While we acknowledge that the trained policy model (even under curriculum learni
 3. **Soft Bonus Integration (e.g., +0.1 × policy score)**  
    → Minor improvement in some settings, but still inconsistent due to poor policy.
    
-The results supported our hypothesis that the naively trained policy model tends to overfit to simple board patterns and fails to generalize well to more complex situations. It provided no noticeable performance improvement and, in several cases, selected clearly suboptimal moves despite better available options. Additionally, the strict 1-second decision limit made it impractical to perform deeper simulations or corrections based on policy suggestions.
+The results supported our hypothesis that the naively trained policy model tends to overfit to simple board patterns and fails to generalise well to more complex situations. It provided no noticeable performance improvement and, in several cases, selected clearly suboptimal moves despite better available options. Additionally, the strict 1-second decision limit made it impractical to perform deeper simulations or corrections based on policy suggestions.
 
 Although the model did not enhance gameplay performance, these experiments offered valuable insights. They highlighted key limitations of offline-trained policies and helped inform how future self-play or imitation learning approaches might be better designed and integrated.
 
-**8. Cai Loashi**
+**8. Teacher Cai**
 
 **9. ABC**
+
 [Back to top](#table-of-contents)
 
 ### Solved Challenges
+
+1. 1-Second Timeout Constraint
+   
+   Deep lookahead and complex evaluation exceeded the 1-second per-move limit.  
+   - Solution: Inserted early runtime cutoffs using `time.perf_counter()` and used a fallback to random valid actions if computation exceeded 0.95s.
+
+2. Heuristic Narrowness
+
+   Initial heuristics strongly favoured central control, ignoring long-term sequence building.  
+   - Solution: Added directional alignment scoring and fork detection to encourage flexible positioning and overlapping potential.
+
+3. Draft/Hand Uncertainty
+
+   Unpredictable draft cards after action execution introduced uncertainty.  
+   - Solution: Simulated future drafts by sampling from the unseen deck to approximate a more realistic next-step state.
+
+4. Dead Card Stagnation
+   Players could hold unusable cards that offered no placement opportunities.  
+   - Solution: Implemented discard logic that identifies and removes dead cards. The agent simulates a trade and re-evaluates the best moves.
 
 [Back to top](#table-of-contents)
 
