@@ -1,8 +1,8 @@
 # AI Method 2 - Monte Carlo Tree Search
 
-This project focuses on building a competitive agent for the board game Sequence using a strategic AI-based approach. While various techniques such as Monte Carlo Tree Search (MCTS) and Q-learning were explored during development, our final agent employs a customised Two-Step Greedy Best-First Search (GBFS). This technique consistently outperformed alternatives in terms of win rate and decision reliability within the given time constraints.
+This project focuses on building a strategic agent for the board game Sequence, initially using a customised Two-Step Greedy Best-First Search (GBFS). While GBFS proved efficient under the strict 1-second-per-move constraint—achieving a strong win rate of 87.5% (35/40 games)—it was ultimately limited by its shallow search depth, lack of long-term planning, and inability to anticipate opponent responses beyond two moves.
 
-Our final agent incorporates realistic gameplay elements such as random draft card draws, dead card identification, and discard logic. We also experimented with offline policy model guidance to aid move selection, although  it was not deployed in the final agent beyond experimental trials. The best recorded performance of our final agent under #submission achieved a win count of 35 out of 40 games.
+To address these shortcomings, we experimented with a Monte Carlo Tree Search (MCTS) framework with multi-turn foresight and dynamic exploration of the decision space. Our current MCTS prototype leverages the 15-second pregame window for tree construction and integrates with real-time heuristic pruning during gameplay, marking a significant step toward more advanced and adaptable Sequence agents.
 
 # Table of Contents
   * [Motivation](#motivation)
@@ -16,13 +16,9 @@ Our final agent incorporates realistic gameplay elements such as random draft ca
  
 ### Motivation  
 
-GBFS was chosen for its ability to perform focused heuristic evaluations in a limited time window (≤ 1s per move). The two-step lookahead extends the depth of planning without exponential time cost. It allowed the agent to prioritise high-impact sequences while retaining reactivity.
+MCTS addresses the limitation of our previous GBFS-based agent by enabling deeper multi-turn simulations, probabilistic exploration, and adaptive decision-making. Unlike static heuristics, MCTS balances exploitation of strong known moves with exploration of less obvious strategies, offering a more strategic and flexible approach.
 
-Alternative approaches considered:
--	Q-learning: Ultimately rejected, as Q-learning failed to converge meaningfully due to sparse, delayed rewards and ineffective function approximation.
--	MCTS: Initially promising, but led to inconsistent results due to noisy rollouts and variance in simulation depth.
-  
-Hence, the GBFS with a two-step enhancement was favoured as the most balanced approach for search depth and runtime feasibility.
+By integrating enhanced heuristics into the rollout policy and leveraging the 15-second pregame window for strategic tree construction, MCTS allows the agent to better evaluate threats, plan sequence formation, and adapt across different stages of the game. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thourough testing, this method was not implemented due to xxxxx
 
 [Back to top](#table-of-contents)
 
