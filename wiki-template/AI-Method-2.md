@@ -18,24 +18,35 @@ To address these shortcomings, we experimented with a Monte Carlo Tree Search (M
 
 MCTS addresses the limitation of our previous GBFS-based agent by enabling deeper multi-turn simulations, probabilistic exploration, and adaptive decision-making. Unlike static heuristics, MCTS balances exploitation of strong known moves with exploration of less obvious strategies, offering a more strategic and flexible approach.
 
-By integrating enhanced heuristics into the rollout policy and leveraging the 15-second pregame window for strategic tree construction, MCTS allows the agent to better evaluate threats, plan sequence formation, and adapt across different stages of the game. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thourough testing, this method was not implemented due to xxxxx
+By integrating enhanced heuristics into the rollout policy and leveraging the 15-second pregame window for strategic tree construction, MCTS allows the agent to better evaluate threats, plan sequence formation, and adapt across different stages of the game. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thorough testing, this method was not implemented due to xxxxx
 
 [Back to top](#table-of-contents)
 
-### Application  
-We modelled the problem as follows:
--	State Definition: A state is defined by three elements: the board layout (10×10 chips), the agent’s current hand, and the available draft cards.
--	Goal State: The agent aims to either form two completed sequences or fully occupy all four central tiles.
--	Heuristic Function:
-    -	Encourage proximity to centre: adds positional bonus for tiles closer to the centre.
-    - Prioritise alignment potential:
-      - +200 for a complete sequence.
-      -	+90 for four aligned chips with open ends.
-      -	+50 for three aligned with two open ends.
-      -	+20 for two aligned with two open ends.
-    - Detect and reward fork potential (i.e., multiple alignments).
+### Application
 
-No explicit modeling of opponent behavior is used—strategy assumes a reactive opponent, simplifying planning while still performing competitively.
+In our MCTS-based agent, the decision-making process is structured around four core components:
+
+- **Tree Policy**  
+  We adopt the Upper Confidence Bound for Trees (UCT) strategy to traverse the tree. This policy balances exploration and exploitation by prioritising nodes with high value and low visit count.
+
+- **Simulation Policy**  
+  During rollouts, a fast heuristic-based policy simulates future moves. This policy scores actions using the same alignment and positional heuristics as our GBFS agent—evaluating center control, sequence alignment, and fork potential—without performing deep lookahead or opponent modelling to ensure speed.
+
+- **Reward Function**  
+  We define a sparse terminal reward:
+  - `1` if the simulation results in a win (achieving two sequences),
+  - `0` otherwise (loss, draw, or timeout).
+  
+  For non-terminal states in rollouts, we apply a heuristic score to approximate win potential, enabling early backpropagation even if the game doesn't reach completion.
+
+- **Simulation Depth and Iteration Budget**  
+  Each rollout is limited to a depth of **6 plies** (3 moves per player) to maintain time feasibility.  
+  - During the **15-second pregame phase**, we run up to **100 simulations** to generate a strong opening tree.  
+  - During in-game moves (1-second limit), we conduct **20–30 simulations**, adjusting based on remaining time and branching factor.
+
+- **Pre-Game Tree Construction**  
+  The initial 15-second window is used to precompute a strategic tree using MCTS. The resulting structure informs early move selection without runtime computation, helping to compensate for tight in-game time constraints.
+
 
 [Back to top](#table-of-contents)
 
