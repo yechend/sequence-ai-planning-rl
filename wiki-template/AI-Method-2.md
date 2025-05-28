@@ -97,7 +97,7 @@ Overall, the gain in depth came at the cost of reduced exploration, which negati
 
 **5. Aggressive Tree Expansion**
 
-We lowered the UCT `c_param` to reduce exploration and prioritise exploiting higher-value nodes. The rationale was that with tight time budgets, we should favour reliable known moves over uncertain alternatives. This adjustment led to more consistent decisions and marginally improved game outcomes. However, it introduced a new risk: the agent sometimes became trapped in local optim*, repeatedly choosing a suboptimal move because it lacked exploration data on alternatives.
+We lowered the UCT `c_param` to reduce exploration and prioritise exploiting higher-value nodes. The rationale was that with tight time budgets, we should favour reliable known moves over uncertain alternatives. This adjustment led to more consistent decisions and marginally improved game outcomes. However, it introduced a new risk: the agent sometimes became trapped in a local optimum, repeatedly choosing a suboptimal move because it lacked exploration data on alternatives.
 
 This experiment highlighted the delicate trade-off between exploration and exploitation, especially under strict timing constraints.
 
@@ -127,7 +127,7 @@ Over-reliance on heuristic scores early on limited exploration, while pure UCT s
 - Solution: Integrated Progressive Bias into the UCT formula, with adaptive decay of heuristic weights based on visit count, enabling early focus and late-game exploration.
 
 **4. Rollout Evaluation Bias (Random vs. Greedy)**  
-Purely random simulations created noisy evaluations, while greedy rollouts risked local optima and narrow exploration.  
+Purely random simulations created noisy evaluations, while greedy rollouts risked local optimum and narrow exploration.  
 - Solution: Adopted a hybrid **heuristic-greedy + depth-capped (6 steps)** simulation policy, blending tactical foresight with variability to stabilise outcomes.
 
 **5. Redundant Heuristic Computation Bottlenecks**  
