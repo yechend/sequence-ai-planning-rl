@@ -27,19 +27,45 @@ Hence, the GBFS with a two-step enhancement was favoured as the most balanced ap
 [Back to top](#table-of-contents)
 
 ### Application  
-We modelled the problem as follows:
--	State Definition: A state is defined by three elements: the board layout (10×10 chips), the agent’s current hand, and the available draft cards.
--	Goal State: The agent aims to either form two completed sequences or fully occupy all four central tiles.
--	Heuristic Function:
-    -	Encourage proximity to centre: adds positional bonus for tiles closer to the centre.
-    - Prioritise alignment potential:
-      - +200 for a complete sequence.
-      -	+90 for four aligned chips with open ends.
-      -	+50 for three aligned with two open ends.
-      -	+20 for two aligned with two open ends.
-    - Detect and reward fork potential (i.e., multiple alignments).
 
-No explicit modeling of opponent behavior is used—strategy assumes a reactive opponent, simplifying planning while still performing competitively.
+We modelled the Sequence game as a sequential decision-making problem under uncertainty, where each agent must select an optimal action within a constrained time window (≤1 second per move).
+
+**State Representation**
+Each state is composed of:
+- The current 10×10 chip board layout, including all player tokens.
+- The agent’s private hand of cards.
+- The public draft card pool available to draw from after each turn.
+
+**Action Space**
+- Placing a chip using a standard or wild (two-eyed Jack) card.
+- Removing an opponent's chip using a one-eyed Jack.
+- Trading a dead card.
+
+**Goal State**
+
+The primary win condition is to complete two separate 5-in-a-row sequences, or to fully control the four centre tiles.
+
+**Heuristic Evaluation Function**
+
+The agent evaluates each candidate action by simulating its result and scoring the resulting state using a multi-factor heuristic function:
+
+- **Positional Value**:
+  - Encourage proximity to centre: adds positional bonus for tiles closer to the centre.
+- **Alignment Scoring**:
+  - +200 for completing a sequence (5+ in a row).
+  - +90 for four aligned chips with at least one open end.
+  - +50 for three aligned chips with two open ends.
+  - +20 for two aligned chips with two open ends.
+- **Fork Detection**:
+  - A placement contributing to multiple alignments is given extra weight, promoting sequence overlap or multi-threat positions.
+- **Simulated Draft Draws**:
+  - Since future cards are unknown, the agent samples possible future drafts from the remaining unseen deck, enabling more realistic simulation in multi-step lookaheads.
+
+**Search Strategy: Two-Step Lookahead**
+Rather than evaluating only the immediate action, the agent performs a two-step GBFS:
+1. Simulate the result of placing/removing/trading a card.
+2. Simulate a likely follow-up action based on a newly randomly drawn draft.
+3. Aggregate the score of both states and select the action leading to the best combined heuristic value.
 
 [Back to top](#table-of-contents)
 
@@ -119,10 +145,11 @@ This deployment achieved a 57.5% win rate against our previously refined model f
 
 **7. Offline Self-Play Training & Policy Networks**
 
-To better use the 15-second pregame loading time, we explored offline policy training via a cold-start strategy. The rationale was to precompute a general decision policy to guide early-game actions before the real-time search activates, reducing reliance on online computation and improving responsiveness. The model takes encoded board states as input and outputs both action probabilities (policy head) and win likelihoods (value head).
+To better use the 15-second pregame loading time, we explored offline policy training via a **cold-start strategy**. The rationale was to precompute a general decision policy to guide early-game actions before the real-time search activates, reducing reliance on online computation and improving responsiveness. The model takes encoded board states as input and outputs both action probabilities (policy head) and win likelihoods (value head).
 
 - Initially, we deployed `train_sequence_policy.py` to train against the random agent. But its evaluation metrics (accuracy of the policy head, mean Absolute Error (MAE) of the value head, the validation accuracy of the policy head, the validation MAE of the value head) suggested severe underfitting and might not be learning meaningful action patterns.
-- To resolve this, we further deployed `curriculum_trainer.py` to self-play using curriculum learning over 4,000 games against diverse opponents (random 48%, blocker 4%, and our GBFS agent 48%). Due to time limitations, this allocation hadn't been tuned properly to select the optimal split and no other agents were used to train this final model (`policy_value_model_curriculum.keras`). The final training results showed limited improvements as compared to the first training method. 
+- To resolve this, we further deployed `curriculum_trainer.py` to self-play using curriculum learning over 4,000 games against diverse opponents (random 48%, blocker 4%, and our GBFS agent 48%). Due to time limitations, this allocation hadn't been tuned properly to select the optimal split and no other agents were used to train this final model (`policy_value_model_curriculum.keras`). The final training results showed limited improvements as compared to the first training method.
+
   | Metric              | Random-Only | Curriculum  |
   |-------------------------|--------------------------|------------------------|
   | `policy_accuracy`       | ~0.014 → 0.086           | 0.009 → 0.106      |
@@ -130,7 +157,7 @@ To better use the 15-second pregame loading time, we explored offline policy tra
   | `val_policy_accuracy`   | max ~0.0426              | up to 0.1064      |
   | `val_value_mae`         | ~0.25                    | ~0.04              
 
-While we acknowledge that the trained policy model (even under curriculum learning) is suboptimal, we deliberately integrated it into our agent as a hypothesis-driven experiment. Our aim was not to rely on it for full decision-making, but to test how lightweight offline models might assist GBFS in specific scenarios. We conducted the following experimental trials under the removal of the 1s constraint:
+While we acknowledge that the trained policy model (even under curriculum learning) is suboptimal, we deliberately integrated it into our agent as a hypothesis-driven experiment. Our aim was not to rely on it for full decision-making, but to test how lightweight offline models might assist GBFS in specific scenarios. We conducted the following experimental trials under conditions where the 1-second decision limit was lifted:
 
 1. **Filtering by Top-10, Top-3, Top-1 Policy Prediction**  
    → This resulted in poor action diversity and failed to significantly guide optimal choices.
