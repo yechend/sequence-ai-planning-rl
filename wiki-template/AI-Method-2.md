@@ -51,119 +51,63 @@ This policy allows for efficient, goal-directed simulations without relying on r
     - Up to 400 iterations per root node during the 15s pregame phase.
     - Runtime-limited to ~0.9s per move during gameplay, typically allowing ~50–100 iterations depending on board complexity.
 
-- **Pre-Game Tree Construction**  
-  The initial 15-second window is used to precompute a strategic tree using MCTS. The resulting structure informs early move selection without runtime computation, helping to compensate for tight in-game time constraints.
-
-
 [Back to top](#table-of-contents)
 
 ### Experiments
 The initial performance of the model is winning 29 games out of 40 games (72.5%).
-<img width="1378" alt="image" src="https://github.com/user-attachments/assets/dceabbe0-d8a8-485c-b589-9e76f6980f27" />
 
-We have conducted seven thorough experiments to test potential improvements:
+We have conducted six experiments to test potential improvements:
 
-**1. Advanced Wildcard Strategies**
+**1.Basic MCTS**
 
-We experienced a version implementing the following:
-- **Two-Eyed Jacks (wild cards)**: Used to place a chip anywhere. Prioritise completing a sequence, blocking an opponent’s win, or occupying high-value spots (e.g. forks or centre).
-- **One-Eyed Jacks (removers)**: Remove opponent chips that are critical—part of a 4-in-a-row or occupying strategic positions. Always override normal logic if an immediate threat is detected.
+We first implemented a basic MCTS agent using a standard UCT policy without any pregame computation. This agent relied on random rollouts and default simulation depth, with no domain-specific enhancements.
   
-To comply with a one-second-per-move constraint, this had to be implemented under `GeneratePlacingActions` rather than `SelectionAction`. In local testing, the updated agent won 21 out of 40 matches against the initial baseline model, demonstrating moderate improvement. However, during official submission trials, its performance dropped with a win rate of 27/40, suggesting limited gains under varied opponent conditions. We proposed the causes to be two main factors: over-prioritising wildcard, which might lead to ignoring better tactical placement, and the inherent limitation of the one-step decision process, which lacks the contextual foresight to evaluate whether removing or placing a chip offers a more strategic long-term benefit.
+- **Tree Policy**: UCT with exploration constant `c = 1.41`.
+- **Simulation**: Purely random playouts until rollout depth or terminal state.
 
-<img width="1378" alt="image" src="https://github.com/user-attachments/assets/18665a14-ca99-4931-8cff-e6899daae822" />
+The agent achieved a 22/40 win rate, which was consistently lower than our previous GBFS agent. It frequently failed to detect long-term threats or form strategic sequences due to the randomness of its simulations.
 
-**3. Multi-Step Search - 3-Step Extension**
+This baseline demonstrated the importance of adding domain knowledge to guide simulations, as random playouts diluted learning signals and led to poor decision quality.
 
-To further enhance the agent’s planning capability, we extended our search depth from two steps to a three-step Greedy Best-First Search. The rationale was to better anticipate the outcome of a sequence of plays and better account for opponent threats or opportunities arising after our initial two actions. This would theoretically allow our agent to block sequences earlier, set up forks more reliably, and avoid short-sighted placements.
+**2. Heuristic-Guided Rollouts (Implemented)**
 
-To implement this, we modified the existing two-step logic to include one additional simulated action. However, despite promising expectations, this deeper search came with notable **trade-offs**:
+To improve the simulation policy, we replaced random playouts with a greedy, heuristic-based simulation. During each rollout, the agent:
+- Attempted to complete its own sequences.
+- Blocked opponent threats such as 4-in-a-row with open ends.
+- Favoured central positions to increase alignment flexibility.
 
-- **Severe time constraints**: The increased branching factor caused frequent timeout violations. The agent often approached the 1-second limit and had to revert to a 2-step search mid-loop. We tested state evaluation caching and reuse, and reverted to 2-step when approaching the time limit, but didn’t sufficiently resolve this issue. 
+This change led to a slight performance improvement, reaching 24–25 wins out of 40 games on average. While this improvement is not enough to outperform GBFS, it significantly improved rollout consistency and convergence, showing that goal-directed rollouts are far more effective than random ones.
+  <img width="1478" alt="image" src="https://github.com/user-attachments/assets/808be35f-950d-43d5-a2c6-53af5dc77217" />
 
-- **Efficiency bottlenecks**: While caching and reuse of state evaluations improved speed in some cases, generating realistic opponent hands and valid moves added computational burden due to the unknown condition of the opponent's complete hand.
+**3. Early Heuristic Backpropagation**
 
-- **No significant gain in test performance**: We removed the 1-second limit to test the potential of this extension. On average, it achieved a win rate of 23/40, suggesting rather minor improvements due to imperfect state simulation.
+In many rollouts, simulations would not reach a terminal game outcome due to time limits or rollout depth. To improve reward signal quality, we modified the backpropagation strategy:
+- If the game did not reach a win/loss, we returned a heuristic evaluation of the resulting board.
+- This heuristic included metrics such as alignment potential and fork possibilities.
 
-While the 3-step model offered better tactical foresight in theory, it underperformed in practice due to runtime limits, computational overhead, and imperfect modelling of hidden game elements. We thus reverted to a more efficient 2-step GBFS.
+This tweak helped **stabilise backpropagation and improved rollout feedback quality. Although it didn’t drastically improve win rate alone, it laid the groundwork for more informed tree growth and better node selection.
 
-**4. Opponent Modelling and Threat Blocking**
+**4. Extended Rollout Depth (5 → 7)**
 
-To enhance decision-making, we integrated opponent-aware heuristic tuning and explored basic card inference logic. These adjustments aim to penalise board states that are strategically advantageous to the opponent, aligning with defensive priorities.
+We experimented with increasing the rollout depth from 5 to 7 turns (including both agent and opponent actions) in hopes of capturing deeper strategic consequences. While this allowed the agent to simulate more future interactions and occasionally detect stronger plays, it also introduced two major downsides:
+  - Fewer rollouts due to longer simulations per iteration
+  - More frequent timeouts, especially in complex board states （有没有尝试别的方法解决timeout issues?)
 
-- **Tuning Parameter**:
+Overall, the gain in depth came at the cost of reduced exploration, which negatively impacted the breadth of the search tree.
 
-  The tuning parameter α controlled the weights of the opponent's heuristic score under `HeuristicScore`. We experimented with different settings with their associated win rate against the baseline model.
+**5. Aggressive Tree Expansion**
 
-  - `α = 0.0`: 55% win rate (maximum performance)  
-  - `α = 0.1`: 52.5%  
-  - `α = 0.3`: 40%  
-  - `α = 0.5`: 35%
+We lowered the UCT `c_param` to reduce exploration and prioritise exploiting higher-value nodes. The rationale was that with tight time budgets, we should favour reliable known moves over uncertain alternatives. This adjustment led to more consistent decisions and marginally improved game outcomes. However, it introduced a new risk: the agent sometimes became trapped in local optim*, repeatedly choosing a suboptimal move because it lacked exploration data on alternatives.
 
-  This suggests that focusing purely on the agent’s score (`α = 0`) was more effective in practice, likely due to the simplicity and consistency of self-oriented evaluation under tight time constraints.
+This experiment highlighted the delicate trade-off between exploration and exploitation, especially under strict timing constraints.
 
-- **Opponent-aware Heuristic Penalty**:  
-  We further tested applying a penalty in the heuristic if the opponent had:
-  - 4 aligned chips with one open end (imminent threat)
-  - 3 aligned chips with two open ends (high potential threat)
+**6. Other Implemented Improvements after Experiments**
 
-  This logic was embedded into both the `HeuristicScore` function and a pre-search check to ensure emergency blocking actions are prioritised (e.g., one-eyed Jack removals or direct placements to deny key spots). However, this method provided no noticeable performance improvement. We hypothesise that the added complexity diluted the agent’s focus on its strategic buildup, especially under the tight time constraint per move.
+To improve MCTS efficiency and reuse, we introduced three key modifications: First, **Ignore Draft Matching** simplifies tree traversal by focusing solely on placement locations, disregarding the specific draft card used—this reduces node duplication and improves subtree matching. Second, a **Unified Rollout Depth Limit** ensures consistent simulation depth by capping all rollouts to a fixed number of player actions (e.g., 5), rather than varying with draft count, leading to more stable and comparable planning. Lastly, **Dynamic Child Expansion** pre-generates all legal moves when the hand changes, improving rollout consistency and enabling better reuse across similar game states.
 
-- **Card Inference**:  
+**7. Comparison with GBFS (Same Time Budget)**
 
-  While we considered integrating card memory to estimate the likelihood of the opponent possessing a specific card (i.e., if both copies had been seen), this was not ultimately implemented due to complexity and time cost. The agent assumes the worst-case scenario for critical threats, which is a safer but less advanced approach.
-
-**5. Sequence Extension Bonus & Fork Detection (Implemented)**
-
-Since the heuristic function is the core of the agent’s decision-making in the GBFS framework, we initially added a small bonus for placements that would extend to 6-in-a-row under exiting 4-in-a-row (which doesn’t count as a second sequence by rules), recognising the strategic value of overlapping sequence plans. But this did improve the performance due to its limited impact on game outcomes. We then experimented with **fork detection** by evaluating how many sequence lines that position could extend. If a tile contributes to multiple alignment directions, it’s awarded extra points to reflect forming a sequence potential. This refinement raised the local win rate to 55% against the baseline model and was subsequently adopted in our final heuristic design.
-
-**6. Card Discard Logic (Implemented)**
-
-We further employed a two-level discard strategy to maintain hand efficiency and avoid wasted turns:
-
-- **Dead Card Discard**:  
-  If a card cannot be legally placed on the board (i.e., all its associated positions are occupied), it is classified as a dead card and immediately discarded.
-
-- **Low-Value Card Discard**:  
-  If no dead cards are found, the agent evaluates all playable cards using the heuristic function and discards the one with the lowest strategic potential.
-
-This deployment achieved a 57.5% win rate against our previously refined model from **5. – Sequence Extension Bonus & Fork Detection**. In online testing, it reached a peak performance of 33 wins out of 40 games. We included this refinement in our final agent.
-<img width="1378" alt="image" src="https://github.com/user-attachments/assets/db5fa0ca-b5f7-4cf2-90e7-ca7f8a83150a" />
-<img width="1378" alt="image" src="https://github.com/user-attachments/assets/ce6ee26c-a1e6-41b9-96ce-5145c72c0eff" />
-
-**7. Offline Self-Play Training & Policy Networks**
-
-To better use the 15-second pregame loading time, we explored offline policy training via a cold-start strategy. The rationale was to precompute a general decision policy to guide early-game actions before the real-time search activates, reducing reliance on online computation and improving responsiveness. The model takes encoded board states as input and outputs both action probabilities (policy head) and win likelihoods (value head).
-
-- Initially, we deployed `train_sequence_policy.py` to train against the random agent. But its evaluation metrics (accuracy of the policy head, mean Absolute Error (MAE) of the value head, the validation accuracy of the policy head, the validation MAE of the value head) suggested severe underfitting and might not be learning meaningful action patterns.
-- To resolve this, we further deployed `curriculum_trainer.py` to self-play using curriculum learning over 4,000 games against diverse opponents (random 48%, blocker 4%, and our GBFS agent 48%). Due to time limitations, this allocation hadn't been tuned properly to select the optimal split and no other agents were used to train this final model (`policy_value_model_curriculum.keras`). The final training results showed limited improvements as compared to the first training method. 
-  | Metric              | Random-Only | Curriculum  |
-  |-------------------------|--------------------------|------------------------|
-  | `policy_accuracy`       | ~0.014 → 0.086           | 0.009 → 0.106      |
-  | `value_mae`             | ~0.42 → 0.03             | 0.38 → 0.03        |
-  | `val_policy_accuracy`   | max ~0.0426              | up to 0.1064      |
-  | `val_value_mae`         | ~0.25                    | ~0.04              
-
-While we acknowledge that the trained policy model (even under curriculum learning) is suboptimal, we deliberately integrated it into our agent as a hypothesis-driven experiment. Our aim was not to rely on it for full decision-making, but to test how lightweight offline models might assist GBFS in specific scenarios. We conducted the following experimental trials under the removal of the 1s constraint:
-
-1. **Filtering by Top-10, Top-3, Top-1 Policy Prediction**  
-   → This resulted in poor action diversity and failed to significantly guide optimal choices.
-
-2. **Tuning Policy-Heuristic Weighting (α = 0.1 vs. 0.9)**  
-   → No gain in win rate; higher policy influence sometimes led to irrelevant moves.
-
-3. **Soft Bonus Integration (e.g., +0.1 × policy score)**  
-   → Minor improvement in some settings, but still inconsistent due to poor policy.
-   
-The results supported our hypothesis that the naively trained policy model tends to overfit to simple board patterns and fails to generalise well to more complex situations. It provided no noticeable performance improvement and, in several cases, selected clearly suboptimal moves despite better available options. Additionally, the strict 1-second decision limit made it impractical to perform deeper simulations or corrections based on policy suggestions.
-
-Although the model did not enhance gameplay performance, these experiments offered valuable insights. They highlighted key limitations of offline-trained policies and helped inform how future self-play or imitation learning approaches might be better designed and integrated.
-
-**8. Teacher Cai**
-
-**9. ABC**
-
-[Back to top](#table-of-contents)
+We conducted head-to-head matches between the MCTS agent and our final GBFS agent, both restricted to 1-second decision windows per move. The MCTS agent usually lost, achieving a win rate of ~40–50%. This confirmed that, while MCTS offers theoretical advantages in deep planning, the limited iteration budget and simulation overhead prevented it from consistently outperforming the more tailored, domain-optimised GBFS strategy.
 
 ### Solved Challenges
 
