@@ -153,36 +153,92 @@ Although the model did not enhance gameplay performance, these experiments offer
 
 ### Solved Challenges
 
-1. 1-Second Timeout Constraint
+**1. 1-Second Timeout Constraint**
    
    Deep lookahead and complex evaluation exceeded the 1-second per-move limit.  
    - Solution: Inserted early runtime cutoffs using `time.perf_counter()` and used a fallback to random valid actions if computation exceeded 0.95s.
 
-2. Heuristic Narrowness
+**2. Heuristic Narrowness**
 
    Initial heuristics strongly favoured central control, ignoring long-term sequence building.  
    - Solution: Added directional alignment scoring and fork detection to encourage flexible positioning and overlapping potential.
 
-3. Draft/Hand Uncertainty
+**3. Draft/Hand Uncertainty**
 
    Unpredictable draft cards after action execution introduced uncertainty.  
    - Solution: Simulated future drafts by sampling from the unseen deck to approximate a more realistic next-step state.
 
-4. Dead Card Stagnation
+**4. Dead Card Stagnation**
    Players could hold unusable cards that offered no placement opportunities.  
    - Solution: Implemented discard logic that identifies and removes dead cards. The agent simulates a trade and re-evaluates the best moves.
 
 [Back to top](#table-of-contents)
 
 
-### Trade-offs  
+### Trade-offs 
+
+While our Two-Step GBFS agent achieves a strong balance between tactical foresight and real-time decision-making, the design involves several trade-offs. This section outlines the primary advantages and disadvantages observed throughout development and testing. These insights help contextualise the agent's strengths and the practical limitations it faces within a constrained game environment.
+
 #### *Advantages*  
 
+- **Strong Performance in Constrained Settings**  
+  Achieves high win rates (up to **87.5%**, and **35/40** in #submission conditions using only 1-second decision windows.
+
+- **Interpretable Heuristic Design**  
+  Uses a transparent, domain-informed heuristic function to evaluate alignment potential, centre control, and fork creation. Easy to debug and extend.
+
+- **Robust to Partial Information**  
+  Simulates unknowns (e.g., draft card outcomes) using sampling from the unseen deck; does not rely on full knowledge of opponent’s hand.
+
+- **Modular & Extendable**  
+  Clean architecture allows logical integration of wildcard logic, discard strategies, opponent-aware penalties, and soft policy guidance if required.
+
+- **Realistic Game Integration**  
+  Models Sequence-specific mechanics: wildcard jacks, two-dead-card trades, central control, etc., accurately reflecting game rules.
 
 #### *Disadvantages*
+
+- **Limited Long-Term Planning**  
+  Shallow two-step depth cannot anticipate complex multi-turn strategies or future threats.
+
+- **No Strategic Initialisation (Pregame 15s Underused)**  
+  Misses the opportunity to build a long-horizon strategy tree, precompute threat maps during the 15-second pregame period, or load a well-trained offline policy model.
+
+- **No True Opponent Modelling**  
+  Lacks forecasting of opponent actions. Only reacts to the current board without predicting counterplay or blocking threats in advance.
+
+- **Static Heuristic**  
+  The same evaluation is used regardless of game phase. Doesn’t adapt weighting for early control vs. late-game closing moves. 
+
+- **Ineffective Offline Policy Integration**  
+  Attempts to integrate self-play-trained policies failed due to poor generalisation and weak inference under complex states.
+
+- **Discard Logic Myopia**  
+  Heuristic-based discard may undervalue cards that are not immediately useful but may be critical later (e.g., edge or corner cards).
+
+- **No Heuristic Weight Learning or Tuning**
+  All scoring parameters were manually tuned and fixed; no data-driven learning was used to optimise them over time.
 
 [Back to top](#table-of-contents)
 
 ### Future improvements  
+
+- **Hybrid MCTS + GBFS Heuristic Search**  
+  Use Monte Carlo Tree Search during the 15s pregame to construct a strategic tree. Pair this with fast GBFS pruning in real-time. This would balance deep planning with rapid execution
+
+- **Policy Iteration and Adaptive Heuristics**  
+  Use policy gradient or imitation learning to dynamically adjust heuristic weights based on the game phase (early, mid, late) and board context, improving decision adaptability.
+
+- **Opponent Forecasting and Threat Mapping**  
+  Model common opponent sequences, use probabilistic inference (e.g., jack threats), and precompute responses for known patterns.
+
+- **Parallel Rollouts or Heuristic Rollout Evaluation**  
+  Explore multiple branches through shallow tree rollouts, guided by heuristics. This allows richer strategic exploration without violating the 1-second action time constraint. 
+
+- **Improving Offline Policy Learning**  
+  - Replace the majority-random curriculum (48% random) with a stronger and more diverse opponent pool, including high-performing GBFS variants, scripted better defensive agents, and q learning agents.
+  - Dynamically reweight policy and value losses during training to refine both action selection and win-rate prediction.
+  - Augment training data using symmetry-based transformations (e.g., board flips, rotations) to improve generalisation.
+  - Use more sophisticated models and training logics, such as using value head as a simulation critic during search, phase-aware feature engineering, and  contrastive learning or ranking Loss to better learn action preferences, especially under constrained choices.
 
 [Back to top](#table-of-contents)
