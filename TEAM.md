@@ -1,12 +1,12 @@
 * COMP90054 Team information
 
-Team name: AwesomeTeam123
+Team name: H1gogogo
 
-Canvas team number: XXX
+Canvas team number: 068
 
-GitHub URL link: example.com
+GitHub URL link: （https://github.com/COMP90054-2025-Semester1/assignment-3-sequencer-h1gogogo/tree/main)
 
 Team members (name, student id, student email, GitHub username):
- - Firstname Lastname, 1234567, first.last@student.unimelb.edu.au, GitHubUser460
- - Firstname Lastname, 1234567, first.last@student.unimelb.edu.au, GitHubUser460
+ - Yechen Deng, 647915, yechend@student.unimelb.edu.au, Eachann1018
+ - Minghao Cai, 1368519, minghao.cai1@student.unimelb.edu.au, frankcaibao
  - Firstname Lastname, 1234567, first.last@student.unimelb.edu.au, GitHubUser460
