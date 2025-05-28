@@ -2,7 +2,8 @@
 
 This project focuses on building a strategic agent for the board game Sequence, initially using a customised Two-Step Greedy Best-First Search (GBFS). While GBFS proved efficient under the strict 1-second-per-move constraint—achieving a strong win rate of 87.5% (35/40 games)—it was ultimately limited by its shallow search depth, lack of long-term planning, and inability to anticipate opponent responses beyond two moves.
 
-To address these shortcomings, we experimented with a Monte Carlo Tree Search (MCTS) framework with multi-turn foresight and dynamic exploration of the decision space. Our current MCTS prototype leverages the 15-second pregame window for tree construction and integrates with real-time heuristic pruning during gameplay, marking a significant step toward more advanced and adaptable Sequence agents.
+To address these shortcomings, we experimented with a Monte Carlo Tree Search (MCTS) framework with multi-turn foresight and dynamic exploration of the decision space. Our current MCTS approach focuses on multi-turn simulation-based planning, ideal for capturing deeper strategic foresight and responding flexibly to different board states, marking a significant step toward more advanced and adaptable Sequence agents
+
 
 # Table of Contents
   * [Motivation](#motivation)
@@ -18,7 +19,7 @@ To address these shortcomings, we experimented with a Monte Carlo Tree Search (M
 
 MCTS addresses the limitation of our previous GBFS-based agent by enabling deeper multi-turn simulations, probabilistic exploration, and adaptive decision-making. Unlike static heuristics, MCTS balances exploitation of strong known moves with exploration of less obvious strategies, offering a more strategic and flexible approach.
 
-By integrating enhanced heuristics into the rollout policy and leveraging the 15-second pregame window for strategic tree construction, MCTS allows the agent to better evaluate threats, plan sequence formation, and adapt across different stages of the game. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thorough testing, this method was not implemented due to xxxxx
+By integrating enhanced heuristics into the rollout policy, MCTS allows the agent to better evaluate threats and plan sequence formation. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thorough testing, this method was not implemented due to xxxxx
 
 [Back to top](#table-of-contents)
 
@@ -30,7 +31,12 @@ In our MCTS-based agent, the decision-making process is structured around four c
   We adopt the Upper Confidence Bound for Trees (UCT) strategy to traverse the tree. This policy balances exploration and exploitation by prioritising nodes with high value and low visit count.
 
 - **Simulation Policy**  
-  During rollouts, a fast heuristic-based policy simulates future moves. This policy scores actions using the same alignment and positional heuristics as our GBFS agent—evaluating center control, sequence alignment, and fork potential—without performing deep lookahead or opponent modelling to ensure speed.
+  During rollouts, the agent uses a simplified greedy heuristic that:
+  - Prioritises completing sequences (5-in-a-row),
+  - Blocks opponent threats (e.g., 4 aligned with one open end),
+  - Favours placements near the board centre.
+
+This policy allows for efficient, goal-directed simulations without relying on random playouts.
 
 - **Reward Function**  
   We define a sparse terminal reward:
@@ -40,9 +46,10 @@ In our MCTS-based agent, the decision-making process is structured around four c
   For non-terminal states in rollouts, we apply a heuristic score to approximate win potential, enabling early backpropagation even if the game doesn't reach completion.
 
 - **Simulation Depth and Iteration Budget**  
-  Each rollout is limited to a depth of **6 plies** (3 moves per player) to maintain time feasibility.  
-  - During the **15-second pregame phase**, we run up to **100 simulations** to generate a strong opening tree.  
-  - During in-game moves (1-second limit), we conduct **20–30 simulations**, adjusting based on remaining time and branching factor.
+  - Rollout Depth: Simulations proceed up to 5 combined turns (player + opponent), or until a win condition is detected.
+  - Iteration Budget:
+    - Up to 400 iterations per root node during the 15s pregame phase.
+    - Runtime-limited to ~0.9s per move during gameplay, typically allowing ~50–100 iterations depending on board complexity.
 
 - **Pre-Game Tree Construction**  
   The initial 15-second window is used to precompute a strategic tree using MCTS. The resulting structure informs early move selection without runtime computation, helping to compensate for tight in-game time constraints.
