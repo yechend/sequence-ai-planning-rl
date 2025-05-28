@@ -1,12 +1,10 @@
-# AI Method 1 - Computational Approach
+# AI Method 1 - Two-Step Greedy Best-First Search
 
-Your notes about this part of the project, including acknowledgement, comments, strengths and limitations, etc.
+This project focuses on building a competitive agent for the board game Sequence using a strategic AI-based approach. While various techniques such as Monte Carlo Tree Search (MCTS) and Q-learning were explored during development, our final agent employs a customized Two-Step Greedy Best-First Search (GBFS). This technique consistently outperformed alternatives in terms of win rate and decision reliability within the given time constraints.
+Our agent incorporates realistic gameplay elements such as random draft card draws, dead card identification, and discard logic. We also implemented early game hardcoded policies and experimented with policy model guidance to aid move selection, although these were ultimately used only as auxiliary enhancements.
 
-You **do not** need to explain the algorithm. Please tell us how you used it and how you applied it in your team.
+Our agent incorporates realistic gameplay elements such as random draft card draws, dead card identification, and discard logic. We also implemented early game hardcoded policies and experimented with policy model guidance to aid move selection, although these were ultimately used only as auxiliary enhancements.
 
-If you use greed best first search, then, you can explain about what is the problem (state space model, especially how you define the state, how your define the goal), and heuristic function (as specific as possible) that you used. 
-
-If you use MCTS, then, you can explain about what tree policy/simulation policy you used, how many iteration did you run, what is your reward function, the depth of each simulation etc.
 
 # Table of Contents
   * [Motivation](#motivation)
