@@ -27,7 +27,7 @@ Hence, the GBFS with a two-step enhancement was favoured as the most balanced ap
 [Back to top](#table-of-contents)
 
 ### Application  
-Problem Modeling
+We modelled the problem as follows:
 -	State Definition: A state is defined by three elements: the board layout (10×10 chips), the agent’s current hand, and the available draft cards.
 -	Goal State: The agent aims to either form two completed sequences or fully occupy all four central tiles.
 -	Heuristic Function:
@@ -52,22 +52,101 @@ We have conducted seven thorough experiments to test potential improvements:
 **1. Advanced Wildcard Strategies**
 
 We experienced a version implementing the following:
-- Two-Eyed Jacks (wild cards): Used to place a chip anywhere. Prioritise completing a sequence, blocking an opponent’s win, or occupying high-value spots (e.g. forks or centre).
-- One-Eyed Jacks (removers): Remove opponent chips that are critical—part of a 4-in-a-row or occupying strategic positions. Always override normal logic if an immediate threat is detected.
+- **Two-Eyed Jacks (wild cards)**: Used to place a chip anywhere. Prioritise completing a sequence, blocking an opponent’s win, or occupying high-value spots (e.g. forks or centre).
+- **One-Eyed Jacks (removers)**: Remove opponent chips that are critical—part of a 4-in-a-row or occupying strategic positions. Always override normal logic if an immediate threat is detected.
   
 To comply with a one-second-per-move constraint, this had to be implemented under `GeneratePlacingActions` rather than `SelectionAction`. In local testing, the updated agent won 21 out of 40 matches against the initial baseline model, demonstrating moderate improvement. However, during official submission trials, its performance dropped with a win rate of 27/40, suggesting limited gains under varied opponent conditions. We proposed the causes to be two main factors: over-prioritising wildcard, which might lead to ignoring better tactical placement, and the inherent limitation of the one-step decision process, which lacks the contextual foresight to evaluate whether removing or placing a chip offers a more strategic long-term benefit.
 
-<img width="1520" alt="image" src="https://github.com/user-attachments/assets/18665a14-ca99-4931-8cff-e6899daae822" />
+<img width="1378" alt="image" src="https://github.com/user-attachments/assets/18665a14-ca99-4931-8cff-e6899daae822" />
 
-**3. Multi-Step Search**
+**3. Multi-Step Search - 3-Step Extension**
+
+To further enhance the agent’s planning capability, we extended our search depth from two steps to a three-step Greedy Best-First Search. The rationale was to better anticipate the outcome of a sequence of plays and better account for opponent threats or opportunities arising after our initial two actions. This would theoretically allow our agent to block sequences earlier, set up forks more reliably, and avoid short-sighted placements.
+
+To implement this, we modified the existing two-step logic to include one additional simulated action. However, despite promising expectations, this deeper search came with notable **trade-offs**:
+
+- **Severe time constraints**: The increased branching factor caused frequent timeout violations. The agent often approached the 1-second limit and had to revert to a 2-step search mid-loop. We tested state evaluation caching and reuse, and reverted to 2-step when approaching the time limit, but didn’t sufficiently resolve this issue. 
+
+- **Efficiency bottlenecks**: While caching and reuse of state evaluations improved speed in some cases, generating realistic opponent hands and valid moves added computational burden due to the unknown condition of the opponent's complete hand.
+
+- **No significant gain in test performance**: We removed the 1-second limit to test the potential of this extension. On average, it achieved a win rate of 23/40, suggesting rather minor improvements due to imperfect state simulation.
+
+While the 3-step model offered better tactical foresight in theory, it underperformed in practice due to runtime limits, computational overhead, and imperfect modelling of hidden game elements. We thus reverted to a more efficient 2-step GBFS.
 
 **4. Opponent Modelling and Threat Blocking**
 
-**5. Refined Heuristic Evaluation**
+To enhance decision-making, we integrated opponent-aware heuristic tuning and explored basic card inference logic. These adjustments aim to penalise board states that are strategically advantageous to the opponent, aligning with defensive priorities.
+
+- **Tuning parameter**:
+
+  The tuning parameter α controlled the weights of the opponent's heuristic score under `HeuristicScore`. We experimented with different settings with their associated win rate against the baseline model.
+
+  - `α = 0.0`: 55% win rate (maximum performance)  
+  - `α = 0.1`: 52.5%  
+  - `α = 0.3`: 40%  
+  - `α = 0.5`: 35%
+
+  This suggests that focusing purely on the agent’s score (`α = 0`) was more effective in practice, likely due to the simplicity and consistency of self-oriented evaluation under tight time constraints.
+
+- **Opponent-aware heuristic penalty**:  
+  We further tested applying a penalty in the heuristic if the opponent had:
+  - 4 aligned chips with one open end (imminent threat)
+  - 3 aligned chips with two open ends (high potential threat)
+
+  This logic was embedded into both the `HeuristicScore` function and a pre-search check to ensure emergency blocking actions are prioritised (e.g., one-eyed Jack removals or direct placements to deny key spots). However, this method provided no noticeable performance improvement. We hypothesise that the added complexity diluted the agent’s focus on its strategic buildup, especially under the tight time constraint per move.
+
+- **Card Inference (Experimental)**:  
+
+  While we considered integrating card memory to estimate the likelihood of the opponent possessing a specific card (i.e., if both copies had been seen), this was not ultimately implemented due to complexity and time cost. The agent assumes the worst-case scenario for critical threats, which is a safer but less advanced approach.
+
+**5. Sequence Extension Bonus & Fork Detection**
+
+Since the heuristic function is the core of the agent’s decision-making in the GBFS framework, we initially added a small bonus for placements that would extend to 6-in-a-row under exiting 4-in-a-row (which doesn’t count as a second sequence by rules), recognising the strategic value of overlapping sequence plans. But this did improve the performance due to its limited impact on game outcomes. We then experimented with **fork detection** by evaluating how many sequence lines that position could extend. If a tile contributes to multiple alignment directions, it’s awarded extra points to reflect forming a sequence potential. This refinement raised the local win rate to 55% against the baseline model and was subsequently adopted in our final heuristic design.
 
 **6. Card Discard Logic**
 
+We further employed a two-level discard strategy to maintain hand efficiency and avoid wasted turns:
+
+- **Dead Card Discard**:  
+  If a card cannot be legally placed on the board (i.e., all its associated positions are occupied), it is classified as a dead card and immediately discarded.
+
+- **Low-Value Card Discard**:  
+  If no dead cards are found, the agent evaluates all playable cards using the heuristic function and discards the one with the lowest strategic potential.
+
+- **Two Dead Card Trade**:  
+  If the agent holds two or more dead cards, it simulates a trade for a new card and re-evaluates placement options with the updated hand. This ensures improved move quality in the subsequent step.
+
+This deployment achieved a 57.5% win rate against our previously refined model from **5. – Sequence Extension Bonus & Fork Detection**. In online testing, it reached a peak performance of 33 wins out of 40 games. We included this refinement in our final agent.
+<img width="1378" alt="image" src="https://github.com/user-attachments/assets/db5fa0ca-b5f7-4cf2-90e7-ca7f8a83150a" />
+<img width="1378" alt="image" src="https://github.com/user-attachments/assets/ce6ee26c-a1e6-41b9-96ce-5145c72c0eff" />
+
 **7. Offline Self-Play Training & Policy Networks**
+
+To better use the 15-second pregame loading time, we explored offline policy training via a cold-start strategy. The rationale was to precompute a general decision policy to guide early-game actions before the real-time search activates, reducing reliance on online computation and improving responsiveness. The model takes encoded board states as input and outputs both action probabilities (policy head) and win likelihoods (value head).
+
+- Initially, we deployed `train_sequence_policy.py` to train against the random agent. But its evaluation metrics (accuracy of the policy head, mean Absolute Error (MAE) of the value head, the validation accuracy of the policy head, the validation MAE of the value head) suggested severe underfitting and might not be learning meaningful action patterns.
+- To resolve this, we further deployed `curriculum_trainer.py` to self-play using curriculum learning over 4,000 games against diverse opponents (random 48%, blocker 4%, and our GBFS agent 48%). Due to time limitations, this allocation hadn't been tuned properly to select the optimal split and no other agents were used to train this final model (`policy_value_model_curriculum.keras`). The final training results showed limited improvements as compared to the first training method. 
+  | Metric              | Random-Only (Before) | Curriculum (Now)  |
+  |-------------------------|--------------------------|------------------------|
+  | `policy_accuracy`       | ~0.014 → 0.086           | 0.009 → 0.106      |
+  | `value_mae`             | ~0.42 → 0.03             | 0.38 → 0.03        |
+  | `val_policy_accuracy`   | max ~0.0426              | up to 0.1064      |
+  | `val_value_mae`         | ~0.25                    | ~0.04              
+
+While we acknowledge that the trained policy model (even under curriculum learning) is suboptimal, we deliberately integrated it into our agent as a hypothesis-driven experiment. Our aim was not to rely on it for full decision-making, but to test how lightweight offline models might assist GBFS in specific scenarios. We conducted the following experimental trials under the removal of the 1s constraint:
+
+1. **Filtering by Top-10, Top-3, Top-1 Policy Prediction**  
+   → This resulted in poor action diversity and failed to significantly guide optimal choices.
+
+2. **Tuning Policy-Heuristic Weighting (α = 0.1 vs. 0.9)**  
+   → No gain in win rate; higher policy influence sometimes led to irrelevant moves.
+
+3. **Soft Bonus Integration (e.g., +0.1 × policy score)**  
+   → Minor improvement in some settings, but still inconsistent due to poor policy.
+   
+The results supported our hypothesis that the naively trained policy model tends to overfit to simple board patterns and fails to generalize well to more complex situations. It provided no noticeable performance improvement and, in several cases, selected clearly suboptimal moves despite better available options. Additionally, the strict 1-second decision limit made it impractical to perform deeper simulations or corrections based on policy suggestions.
+
+Although the model did not enhance gameplay performance, these experiments offered valuable insights. They highlighted key limitations of offline-trained policies and helped inform how future self-play or imitation learning approaches might be better designed and integrated.
 
 **8. Cai Loashi**
 
