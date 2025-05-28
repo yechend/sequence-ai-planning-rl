@@ -41,8 +41,8 @@ class myAgent(Agent):
     def SelectAction(self, actions, game_state):
         # Check for two dead cards to trigger discard rule
         dead_cards = [card for card in game_state.agents[self.id].hand
-                      if self.is_dead_card(card, game_state.board.chips,
-                      game_state.agents[self.id].colour)]
+                      if self.CheckDeadCard(card, game_state.board.chips,
+                                            game_state.agents[self.id].colour)]
         if len(dead_cards) >= 2:
             # Simulate a discard and draw scenario
             traded_card = random.choice(
@@ -52,12 +52,12 @@ class myAgent(Agent):
             hand.append(traded_card)
             updated_actions = self.GeneratePlacingActions(game_state.board.chips, hand,
                                                           game_state.board.draft, game_state)
-            return self.TwoStepGSearch(updated_actions, game_state)
+            return self.TwoStepGBFSeach(updated_actions, game_state)
 
         winning_move = self.FindImmediateWin(actions, game_state, self.id)
         if winning_move:
             return winning_move
-        return self.TwoStepGSearch(actions, game_state)
+        return self.TwoStepGBFSeach(actions, game_state)
 
     # Simulate placing a chip to see resulting board
     def SimulatedBoard(self, state, action, agent_id):
@@ -92,7 +92,7 @@ class myAgent(Agent):
         return 1 + fwd_count + bwd_count, open_ends
 
     # Identify if a card has no remaining valid placement
-    def is_dead_card(self, card, board, colour):
+    def CheckDeadCard(self, card, board, colour):
         if card in ['jd', 'jc', 'jh', 'js']:
             return False
         positions = COORDS.get(card, [])
@@ -148,7 +148,7 @@ class myAgent(Agent):
                             actions.append({'type': 'place', 'coords': (r, c), 'play_card': card, 'draft_card': d})
 
         colour = state.agents[self.id].colour
-        dead_cards = [card for card in hand if self.is_dead_card(card, board, colour)]
+        dead_cards = [card for card in hand if self.CheckDeadCard(card, board, colour)]
         if dead_cards:
             for d in draft:
                 actions.append({'type': 'discard', 'play_card': dead_cards[0], 'draft_card': d})
@@ -172,7 +172,7 @@ class myAgent(Agent):
         return actions
 
     # Two-step Greedy Best-First Search to evaluate and select best action
-    def TwoStepGSearch(self, actions, state):
+    def TwoStepGBFSeach(self, actions, state):
         start_time = time.perf_counter()
         best_score, best_action = float('-inf'), None
         agent_id = self.id
