@@ -44,7 +44,34 @@ No explicit modeling of opponent behavior is used—strategy assumes a reactive 
 [Back to top](#table-of-contents)
 
 ### Experiments
+The initial performance of the model is winning 29 games out of 40 games (72.5%).
+<img width="1378" alt="image" src="https://github.com/user-attachments/assets/dceabbe0-d8a8-485c-b589-9e76f6980f27" />
 
+We have conducted seven thorough experiments to test potential improvements:
+
+**1. Advanced Wildcard Strategies**
+
+We experienced a version implementing the following:
+- Two-Eyed Jacks (wild cards): Used to place a chip anywhere. Prioritise completing a sequence, blocking an opponent’s win, or occupying high-value spots (e.g. forks or centre).
+- One-Eyed Jacks (removers): Remove opponent chips that are critical—part of a 4-in-a-row or occupying strategic positions. Always override normal logic if an immediate threat is detected.
+  
+To comply with a one-second-per-move constraint, this had to be implemented under `GeneratePlacingActions` rather than `SelectionAction`. In local testing, the updated agent won 21 out of 40 matches against the initial baseline model, demonstrating moderate improvement. However, during official submission trials, its performance dropped with a win rate of 27/40, suggesting limited gains under varied opponent conditions. We proposed the causes to be two main factors: over-prioritising wildcard, which might lead to ignoring better tactical placement, and the inherent limitation of the one-step decision process, which lacks the contextual foresight to evaluate whether removing or placing a chip offers a more strategic long-term benefit.
+
+<img width="1520" alt="image" src="https://github.com/user-attachments/assets/18665a14-ca99-4931-8cff-e6899daae822" />
+
+**3. Multi-Step Search**
+
+**4. Opponent Modelling and Threat Blocking**
+
+**5. Refined Heuristic Evaluation**
+
+**6. Card Discard Logic**
+
+**7. Offline Self-Play Training & Policy Networks**
+
+**8. Cai Loashi**
+
+**9. ABC**
 [Back to top](#table-of-contents)
 
 ### Solved Challenges
