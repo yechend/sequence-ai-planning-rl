@@ -173,7 +173,7 @@ While our MCTS agent offers deeper foresight and flexible decision-making, it co
 
 [Back to top](#table-of-contents)
 
-### Future improvements  
+### Future Improvements  
 
 - **Precompute Strategic Tree in Pregame Phase**  
   Leverage the 15-second pregame window to run MCTS with deep rollouts (e.g. 400–600 iterations), building a well-initialised root tree. This allows early moves to benefit from extensive planning without violating runtime constraints during actual gameplay.
