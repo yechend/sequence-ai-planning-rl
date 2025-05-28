@@ -107,96 +107,87 @@ To improve MCTS efficiency and reuse, we introduced three key modifications: Fir
 
 **7. Comparison with GBFS (Same Time Budget)**
 
-We conducted head-to-head matches between the MCTS agent and our final GBFS agent, both restricted to 1-second decision windows per move. The MCTS agent usually lost, achieving a win rate of ~40–50%. This confirmed that, while MCTS offers theoretical advantages in deep planning, the limited iteration budget and simulation overhead prevented it from consistently outperforming the more tailored, domain-optimised GBFS strategy.
+We conducted head-to-head matches between the MCTS agent and our final GBFS agent, both restricted to 1-second decision windows per move. The MCTS agent usually lost, achieving a win rate of ~40–50%. This confirmed that, while MCTS offers theoretical advantages in deep planning, the limited iteration budget and simulation overhead lead to suboptimal performance.
 
 ### Solved Challenges
 
-**1. 1-Second Timeout Constraint**
-   
-   Deep lookahead and complex evaluation exceeded the 1-second per-move limit.  
-   - Solution: Inserted early runtime cutoffs using `time.perf_counter()` and used a fallback to random valid actions if computation exceeded 0.95s.
+**1. High Branching Factor Under Time Constraint**  
+The 10×10 board combined with draft-hand combinations results in a large branching factor, making it difficult to search deeply within the 1-second time limit.  
+- Solution: Applied heuristic-based pruning to rank all legal placements using `HeuristicBoard`, retaining only top-K actions for regular and Jack cards to significantly reduce the branching factor.
 
-**2. Heuristic Narrowness**
+**2. Tree Reuse Difficulty Due to Partial Observability**  
+Frequent updates to hand and draft cards, along with unknown opponent state, prevent subtree reuse across turns.  
+- Solution:  
+  - Ignored draft card identity, focusing only on positional updates.  
+  - Used a fixed rollout draft pool to reduce subtree mismatch from draw randomness.  
+  - Applied incremental expansion: new children are generated only for changed positions, improving subtree consistency.
 
-   Initial heuristics strongly favoured central control, ignoring long-term sequence building.  
-   - Solution: Added directional alignment scoring and fork detection to encourage flexible positioning and overlapping potential.
+**3. Balancing Heuristics in UCT**  
+Over-reliance on heuristic scores early on limited exploration, while pure UCT suffered from reduced performance.  
+- Solution: Integrated Progressive Bias into the UCT formula, with adaptive decay of heuristic weights based on visit count, enabling early focus and late-game exploration.
 
-**3. Draft/Hand Uncertainty**
+**4. Rollout Evaluation Bias (Random vs. Greedy)**  
+Purely random simulations created noisy evaluations, while greedy rollouts risked local optima and narrow exploration.  
+- Solution: Adopted a hybrid **heuristic-greedy + depth-capped (6 steps)** simulation policy, blending tactical foresight with variability to stabilise outcomes.
 
-   Unpredictable draft cards after action execution introduced uncertainty.  
-   - Solution: Simulated future drafts by sampling from the unseen deck to approximate a more realistic next-step state.
-
-**4. Dead Card Stagnation**
-   Players could hold unusable cards that offered no placement opportunities.  
-   - Solution: Implemented discard logic that identifies and removes dead cards. The agent simulates a trade and re-evaluates the best moves.
+**5. Redundant Heuristic Computation Bottlenecks**  
+Frequent re-evaluation of heuristic functions (e.g., `HeuristicBoard`, `CountAlignedChips`) during expansion and backpropagation slowed down search.  
+- Solution: Partial mitigation was deployed - heuristic evaluations are batched before sorting child nodes
 
 [Back to top](#table-of-contents)
 
-
 ### Trade-offs 
 
-While our Two-Step GBFS agent achieves a strong balance between tactical foresight and real-time decision-making, the design involves several trade-offs. This section outlines the primary advantages and disadvantages observed throughout development and testing. These insights help contextualise the agent's strengths and the practical limitations it faces within a constrained game environment.
+While our MCTS agent offers deeper foresight and flexible decision-making, it comes with computational and architectural trade-offs. This section reflects how the agent balances strategic planning, runtime efficiency, and practical implementation under time-constrained gameplay conditions.
 
 #### *Advantages*  
 
-- **Strong Performance in Constrained Settings**  
-  Achieves high win rates (up to **87.5%**, and **35/40** in #submission conditions using only 1-second decision windows.
+- **Deep Strategic Reasoning**  
+  MCTS enables a 5-step simulation and evaluation, allowing the agent to discover future winning paths, detect forks, and block threats several turns in advance.
 
-- **Interpretable Heuristic Design**  
-  Uses a transparent, domain-informed heuristic function to evaluate alignment potential, centre control, and fork creation. Easy to debug and extend.
+- **Efficient Search with Heuristic Guidance**  
+  Integration of Progressive Bias and heuristic-driven rollouts accelerates convergence toward high-value actions while preserving diversity in exploration.
 
-- **Robust to Partial Information**  
-  Simulates unknowns (e.g., draft card outcomes) using sampling from the unseen deck; does not rely on full knowledge of opponent’s hand.
+- **Improved Draft Robustness**  
+  Ignores draft card identities in tree node keys, focusing on chip positions. This enables subtree reuse and reduces node duplication across stochastic hand/draft transitions.
 
-- **Modular & Extendable**  
-  Clean architecture allows logical integration of wildcard logic, discard strategies, opponent-aware penalties, and soft policy guidance if required.
-
-- **Realistic Game Integration**  
-  Models Sequence-specific mechanics: wildcard jacks, two-dead-card trades, central control, etc., accurately reflecting game rules.
+- **Modular & Scalable**  
+  Supports dynamic expansion of valid actions, unified rollout depth, and flexible reward shaping. Easily extendable to incorporate future rollout policies or adaptive tree scoring.
 
 #### *Disadvantages*
 
-- **Limited Long-Term Planning**  
-  Shallow two-step depth cannot anticipate complex multi-turn strategies or future threats.
+- **High Computational Overhead**  
+  Tree expansion, UCB scoring, and rollout evaluations are resource-intensive, especially in complex game states, sometimes limiting search depth under the 1-second runtime.
 
-- **No Strategic Initialisation (Pregame 15s Underused)**  
-  Misses the opportunity to build a long-horizon strategy tree, precompute threat maps during the 15-second pregame period, or load a well-trained offline policy model.
+- **Partial Tree Reusability Across Turns**  
+  Due to constantly changing hands and drafts, subtree reuse is limited unless abstraction or matching simplification (e.g. ignoring draft) is enforced
 
-- **No True Opponent Modelling**  
-  Lacks forecasting of opponent actions. Only reacts to the current board without predicting counterplay or blocking threats in advance.
+- **Sparse Reward Signal**  
+  Terminal-only reward assignment makes backpropagation sparse, relying heavily on heuristics in early tree levels, which can introduce estimation bias.
 
-- **Static Heuristic**  
-  The same evaluation is used regardless of game phase. Doesn’t adapt weighting for early control vs. late-game closing moves. 
+- **Underexplored Opponent Modelling**  
+  Our agent does not explicitly simulate or infer the opponent’s cards or likely actions, which could miss defensive opportunities in critical states.
 
-- **Ineffective Offline Policy Integration**  
-  Attempts to integrate self-play-trained policies failed due to poor generalisation and weak inference under complex states.
-
-- **Discard Logic Myopia**  
-  Heuristic-based discard may undervalue cards that are not immediately useful but may be critical later (e.g., edge or corner cards).
-
-- **No Heuristic Weight Learning or Tuning**
-  All scoring parameters were manually tuned and fixed; no data-driven learning was used to optimise them over time.
+- **Overhead in Preprocessing and Expansion**  
+  Dynamic child generation and pruning (Top-K based on heuristic scores) introduce preprocessing latency that must be tightly controlled to avoid runtime violations.
 
 [Back to top](#table-of-contents)
 
 ### Future improvements  
 
-- **Hybrid MCTS + GBFS Heuristic Search**  
-  Use Monte Carlo Tree Search during the 15s pregame to construct a strategic tree. Pair this with fast GBFS pruning in real-time. This would balance deep planning with rapid execution
+- **Precompute Strategic Tree in Pregame Phase**  
+  Leverage the 15-second pregame window to run MCTS with deep rollouts (e.g. 400–600 iterations), building a well-initialised root tree. This allows early moves to benefit from extensive planning without violating runtime constraints during actual gameplay.
 
-- **Policy Iteration and Adaptive Heuristics**  
-  Use policy gradient or imitation learning to dynamically adjust heuristic weights based on the game phase (early, mid, late) and board context, improving decision adaptability.
+- **Offline Self-Play Training for Policy Guidance**  
+  Similarly, well-designed offline learning policy training could also benefit MCTS in its expansion.
 
-- **Opponent Forecasting and Threat Mapping**  
-  Model common opponent sequences, use probabilistic inference (e.g., jack threats), and precompute responses for known patterns.
+- **Differential State Updates**  
+  Replace full board deep copies with delta updates (only modify changed positions and card lists). This optimisation is critical to maintain MCTS feasibility during the pregame simulations, especially under large branching factors.
 
-- **Parallel Rollouts or Heuristic Rollout Evaluation**  
-  Explore multiple branches through shallow tree rollouts, guided by heuristics. This allows richer strategic exploration without violating the 1-second action time constraint. 
+- **Dynamic Branch Pruning with Adaptive Top-K**  
+  Adjust the number of expanded child nodes (Top-K) based on time remaining and board complexity. Nodes with high score variance keep more branches for exploration, while stable nodes are aggressively pruned. 
 
-- **Improving Offline Policy Learning**  
-  - Replace the majority-random curriculum (48% random) with a stronger and more diverse opponent pool, including high-performing GBFS variants, scripted better defensive agents, and q learning agents.
-  - Dynamically reweight policy and value losses during training to refine both action selection and win-rate prediction.
-  - Augment training data using symmetry-based transformations (e.g., board flips, rotations) to improve generalisation.
-  - Use more sophisticated models and training logics, such as using value head as a simulation critic during search, phase-aware feature engineering, and  contrastive learning or ranking Loss to better learn action preferences, especially under constrained choices.
+- **Heuristic-to-UCT Weight Decay**  
+  Early in MCTS, emphasise heuristic guidance (bias); as simulations progress, decay the heuristic weight to rely more on visit statistics. This dynamic tuning aligns exploration-exploitation with tree maturity.
 
 [Back to top](#table-of-contents)
