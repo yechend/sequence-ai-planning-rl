@@ -173,7 +173,6 @@ class myAgent(Agent):
 
     # Two-step Greedy Best-First Search to evaluate and select best action
     def TwoStepGSearch(self, actions, state):
-        import time
         start_time = time.perf_counter()
         best_score, best_action = float('-inf'), None
         agent_id = self.id
