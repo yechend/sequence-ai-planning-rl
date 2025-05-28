@@ -9,12 +9,14 @@ MAX_THINK_TIME = 0.95
 SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
 FULL_DECK = [r + s for r in '23456789tjqka' for s in 'dchs'] * 2
+
 class myAgent(Agent):
     def __init__(self, _id):
         super().__init__(_id)
         self.id = _id
         self.rule = GameRule(2)
 
+    # Check if an action directly results in a win (1 sequence or all center occupied)
     def isWinningMove(self, state, action, agent_id):
         if action['type'] != 'place' or action['coords'] is None:
             return False
@@ -28,19 +30,21 @@ class myAgent(Agent):
         result, _ = self.rule.checkSeq(board, agent, (r, c))
         return result and result['num_seq'] >= 1
 
+    # Try to find a winning move from current action list
     def FindImmediateWin(self, actions, state, agent_id):
         for action in actions:
             if self.isWinningMove(state, action, agent_id):
                 return action
         return None
 
+    # Main decision-making function for the agent
     def SelectAction(self, actions, game_state):
-        # Two-dead-card trade rule
+        # Check for two dead cards to trigger discard rule
         dead_cards = [card for card in game_state.agents[self.id].hand
                       if self.is_dead_card(card, game_state.board.chips,
                       game_state.agents[self.id].colour)]
         if len(dead_cards) >= 2:
-            # Simulate trade
+            # Simulate a discard and draw scenario
             traded_card = random.choice(
                 [c for c in FULL_DECK if c not in game_state.agents[self.id].hand])
             hand = game_state.agents[self.id].hand.copy()
@@ -48,13 +52,14 @@ class myAgent(Agent):
             hand.append(traded_card)
             updated_actions = self.GeneratePlacingActions(game_state.board.chips, hand,
                                                           game_state.board.draft, game_state)
-            return self.TwoStepLookaheadSearch(updated_actions, game_state)
+            return self.TwoStepGSearch(updated_actions, game_state)
 
         winning_move = self.FindImmediateWin(actions, game_state, self.id)
         if winning_move:
             return winning_move
-        return self.TwoStepLookaheadSearch(actions, game_state)
+        return self.TwoStepGSearch(actions, game_state)
 
+    # Simulate placing a chip to see resulting board
     def SimulatedBoard(self, state, action, agent_id):
         board = deepcopy(state.board.chips)
         if action['type'] == 'place' and action['coords']:
@@ -62,6 +67,7 @@ class myAgent(Agent):
             board[r][c] = state.agents[agent_id].colour
         return board
 
+    # Count aligned chips in a direction with open ends for scoring
     def CountAlignedChips(self, board, row, col, d_row, d_col, player_colour):
         open_ends = 0
         fwd_count = bwd_count = 0
@@ -85,12 +91,14 @@ class myAgent(Agent):
                 else: break
         return 1 + fwd_count + bwd_count, open_ends
 
+    # Identify if a card has no remaining valid placement
     def is_dead_card(self, card, board, colour):
         if card in ['jd', 'jc', 'jh', 'js']:
             return False
         positions = COORDS.get(card, [])
         return all(board[r][c] != EMPTY for r, c in positions)
 
+    # Score a board state using chip alignment, center control, and fork potential
     def HeuristicBoard(self, board, coords, state, agent_id):
         if coords is None:
             return 0
@@ -112,6 +120,7 @@ class myAgent(Agent):
             score += (fork_dirs - 1) * 10
         return score
 
+    # Generate all legal placing and discard actions from current state
     def GeneratePlacingActions(self, board, hand, draft, state):
         actions = []
         fallback_limit = 12
@@ -162,38 +171,55 @@ class myAgent(Agent):
 
         return actions
 
-    def TwoStepLookaheadSearch(self, actions, state):
+    # Two-step Greedy Best-First Search to evaluate and select best action
+    def TwoStepGSearch(self, actions, state):
+        import time
         start_time = time.perf_counter()
         best_score, best_action = float('-inf'), None
         agent_id = self.id
         original_hand = state.agents[agent_id].hand
         original_draft = state.board.draft
 
+        def is_goal_state(board, agent):
+            if all(board[x][y] == agent.colour for x, y in CENTER_COORDS):
+                return True
+            result, _ = self.rule.checkSeq(board, agent, None)
+            return result and result['num_seq'] >= 2
+
+        def heuristic(state_board, coords):
+            return self.HeuristicBoard(state_board, coords, state, agent_id)
+
         for a1 in actions:
             if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
                 return random.choice(actions)
             if a1['type'] not in ['place', 'discard']:
                 continue
+
             board1 = self.SimulatedBoard(state, a1, agent_id)
-            score1 = self.HeuristicBoard(board1, a1.get('coords'), state, agent_id)
+            score1 = heuristic(board1, a1.get('coords'))
+
             new_hand = original_hand.copy()
             if a1['play_card'] in new_hand:
                 new_hand.remove(a1['play_card'])
             new_hand.append(a1['draft_card'])
+
             new_draft = original_draft.copy()
             if a1['draft_card'] in new_draft:
                 new_draft.remove(a1['draft_card'])
+
             seen_cards = set(original_hand + original_draft)
             available = [c for c in FULL_DECK if c not in seen_cards]
             if available:
                 new_draft.append(random.choice(available))
+
             second_actions = self.GeneratePlacingActions(board1, new_hand, new_draft, state)
             best_future = 0
             for a2 in second_actions:
                 if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
                     break
-                score2 = self.HeuristicBoard(board1, a2.get('coords'), state, agent_id)
+                score2 = heuristic(board1, a2.get('coords'))
                 best_future = max(best_future, score2)
+
             total_score = score1 + best_future
             if total_score > best_score:
                 best_score = total_score

@@ -4,16 +4,58 @@ import time, random
 from copy import deepcopy
 from Sequence.sequence_model import COORDS
 from Sequence.sequence_utils import EMPTY
+import tensorflow as tf
+import numpy as np
+import json
 
 MAX_THINK_TIME = 0.95
 SAFETY_BUFFER = 0.02
 CENTER_COORDS = [(4, 4), (4, 5), (5, 4), (5, 5)]
 FULL_DECK = [r + s for r in '23456789tjqka' for s in 'dchs'] * 2
+
+policy_model = None
+
+def load_policy_model():
+    global policy_model
+    if policy_model is None:
+        import time
+        print("[DEBUG] Loading policy model at", time.time())  # Confirm pregame load
+        policy_model = tf.keras.models.load_model("policy_value_model_curriculum.keras")
+
 class myAgent(Agent):
     def __init__(self, _id):
         super().__init__(_id)
         self.id = _id
         self.rule = GameRule(2)
+        load_policy_model()
+        self.policy_model = policy_model
+
+    def encode_state_action(self, state, action):
+        board = np.array(state.board.chips)
+        agent = state.agents[self.id]
+        opponent_colour = state.agents[1 - self.id].colour
+
+        p0 = (board == agent.colour).astype(int).flatten()
+        p1 = (board == opponent_colour).astype(int).flatten()
+        empty = (board == EMPTY).astype(int).flatten()
+
+        # Optional: inject move coordinates (e.g., one-hot 100-dim vector)
+        move_encoding = np.zeros(100)
+        if action['coords']:
+            r, c = action['coords']
+            move_encoding[r * 10 + c] = 1
+
+        x = np.concatenate([p0, p1, empty])  # size = 300
+        return np.expand_dims(x, axis=0)  # shape = (1, 300)
+
+    def rank_actions_by_policy(self, actions, state):
+        scored = []
+        for action in actions:
+            x = self.encode_state_action(state, action)
+            _, value = self.policy_model.predict(x, verbose=0)
+            scored.append((value[0], action))
+        scored.sort(reverse=True, key=lambda x: x[0])
+        return [a for _, a in scored]
 
     def isWinningMove(self, state, action, agent_id):
         if action['type'] != 'place' or action['coords'] is None:
@@ -36,9 +78,13 @@ class myAgent(Agent):
 
     def SelectAction(self, actions, game_state):
         # Two-dead-card trade rule
+        winning_move = self.FindImmediateWin(actions, game_state, self.id)
+        if winning_move:
+            return winning_move
         dead_cards = [card for card in game_state.agents[self.id].hand
                       if self.is_dead_card(card, game_state.board.chips,
                       game_state.agents[self.id].colour)]
+
         if len(dead_cards) >= 2:
             # Simulate trade
             traded_card = random.choice(
@@ -163,23 +209,38 @@ class myAgent(Agent):
         return actions
 
     def TwoStepLookaheadSearch(self, actions, state):
+        import time
         start_time = time.perf_counter()
-        best_score, best_action = float('-inf'), None
         agent_id = self.id
         original_hand = state.agents[agent_id].hand
         original_draft = state.board.draft
 
-        for a1 in actions:
+        scored = []
+        for action in actions:
+            x = self.encode_state_action(state, action)
+            _, value = self.policy_model.predict(x, verbose=0)
+            scored.append((float(value[0]), action))
+
+        scored.sort(reverse=True, key=lambda x: x[0])
+        policy_scores = {str(a): v for v, a in scored}
+
+        best_score, best_action = float('-inf'), None
+        top_actions = [a for _, a in scored[:3]]
+
+        for a1 in top_actions:
             if time.perf_counter() - start_time > MAX_THINK_TIME - SAFETY_BUFFER:
-                return random.choice(actions)
+                break
             if a1['type'] not in ['place', 'discard']:
                 continue
+
             board1 = self.SimulatedBoard(state, a1, agent_id)
-            score1 = self.HeuristicBoard(board1, a1.get('coords'), state, agent_id)
+            heuristic_score1 = self.HeuristicBoard(board1, a1.get('coords'), state, agent_id)
+
             new_hand = original_hand.copy()
             if a1['play_card'] in new_hand:
                 new_hand.remove(a1['play_card'])
             new_hand.append(a1['draft_card'])
+
             new_draft = original_draft.copy()
             if a1['draft_card'] in new_draft:
                 new_draft.remove(a1['draft_card'])
@@ -187,6 +248,7 @@ class myAgent(Agent):
             available = [c for c in FULL_DECK if c not in seen_cards]
             if available:
                 new_draft.append(random.choice(available))
+
             second_actions = self.GeneratePlacingActions(board1, new_hand, new_draft, state)
             best_future = 0
             for a2 in second_actions:
@@ -194,7 +256,10 @@ class myAgent(Agent):
                     break
                 score2 = self.HeuristicBoard(board1, a2.get('coords'), state, agent_id)
                 best_future = max(best_future, score2)
-            total_score = score1 + best_future
+
+            policy_bonus = 0.1 * policy_scores.get(str(a1), 0)
+            total_score = heuristic_score1 + best_future + policy_bonus
+
             if total_score > best_score:
                 best_score = total_score
                 best_action = a1
