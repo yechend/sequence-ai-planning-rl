@@ -15,7 +15,7 @@ class myAgent():
         self.max_timeouts = 3
         self.corner_coords = [(0, 0), (0, 9), (9, 0), (9, 9)]
         self.center_coords = [(4, 4), (4, 5), (5, 4), (5, 5)]
-        self.card_value_cache = {}  # 用于缓存卡牌评分
+        self.card_value_cache = {}
 
     def register_initial_state(self, state):
         board = state.board.chips
