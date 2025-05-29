@@ -187,9 +187,17 @@ Further refinements and experimental enhancements were conducted by **Minghao Ca
 
 ---
 
-**8. Teacher Cai**
+**8. Live Strategy **
+The Live strategy turns open-ended sequences (“Live-X”) into reward opportunities, assigning increasing positive rewards to any contiguous run of X chips within a 5-cell line segment whose both ends remain unblocked. By treating Live-2 through Live-5 as reward milestones—reflecting that Live-4 is one move from victory and Live-3 can evolve into crossing threats—every candidate move is evaluated on how much it increases these Live-X rewards while decreasing opponent Live-X penalties.
 
-**9. ABC**
+e.g. the segment _xxxo_ is a Live-3 (three open-ended chips) and earns a higher reward than oxxx_ (a Sleep-3), encouraging the model to prioritize moves that form or extend open threes.
+
+This reward-shaping approach directly steers the model toward the goal of completing a five-in-a-row: moves that create or extend Live-X patterns yield higher reward deltas (post-move minus pre-move), naturally guiding greedy or MCTS agents toward states that bring them closer to the ultimate sequence goal. Combined with fork bonuses and a mild center bias, Live rewards ensure the search focuses on both advancing toward victory and preemptively defending against opponent threats.
+
+**9. Card-tracking opponent hand card**
+
+We implement a card-tracking mechanism by recording each card the opponent draws (draft_card) and plays (play_card or remove_card) in a seen_cards list. By subtracting all seen cards and our own hand from the full deck, we continuously update the pool of unknown cards that the opponent may hold. This allows us to estimate the probability of the opponent holding specific cards, enabling more accurate threat assessment, dynamic adjustment of defensive priorities, and improved decision-making during both heuristic evaluation and search simulations.
+
 
 [Back to top](#table-of-contents)
 
