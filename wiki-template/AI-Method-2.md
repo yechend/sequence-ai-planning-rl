@@ -1,6 +1,6 @@
 # AI Method 2 - Monte Carlo Tree Search
 
-This project focuses on building a strategic agent for the board game Sequence, initially using a customised Two-Step Greedy Best-First Search (GBFS). While GBFS proved efficient under the strict 1-second-per-move constraint—achieving a strong win rate of 87.5% (35/40 games)—it was ultimately limited by its shallow search depth, lack of long-term planning, and inability to anticipate opponent responses beyond two moves.
+This project focuses on building a strategic agent for the board game Sequence, initially using a customised Two-Step Greedy Best-First Search (GBFS). While GBFS proved efficient under the strict 1-second-per-move constraint—achieving a strong win rate of 85% (34/40 games)—it was ultimately limited by its shallow search depth, lack of long-term planning, and inability to anticipate opponent responses beyond two moves.
 
 To address these shortcomings, we experimented with a Monte Carlo Tree Search (MCTS) framework with multi-turn foresight and dynamic exploration of the decision space. Our current MCTS approach focuses on multi-turn simulation-based planning, ideal for capturing deeper strategic foresight and responding flexibly to different board states, marking a significant step toward more advanced and adaptable Sequence agents
 
@@ -19,7 +19,7 @@ To address these shortcomings, we experimented with a Monte Carlo Tree Search (M
 
 MCTS addresses the limitation of our previous GBFS-based agent by enabling deeper multi-turn simulations, probabilistic exploration, and adaptive decision-making. Unlike static heuristics, MCTS balances exploitation of strong known moves with exploration of less obvious strategies, offering a more strategic and flexible approach.
 
-By integrating enhanced heuristics into the rollout policy, MCTS allows the agent to better evaluate threats and plan sequence formation. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thorough testing, this method was not implemented due to xxxxx
+By integrating enhanced heuristics into the rollout policy, MCTS allows the agent to better evaluate threats and plan sequence formation. This makes it a natural progression for building a more robust and intelligent Sequence-playing agent. But after thorough testing, this method was not implemented due to time complexity.
 
 [Back to top](#table-of-contents)
 
@@ -29,6 +29,26 @@ In our MCTS-based agent, the decision-making process is structured around four c
 
 - **Tree Policy**  
   We adopt the Upper Confidence Bound for Trees (UCT) strategy to traverse the tree. This policy balances exploration and exploitation by prioritising nodes with high value and low visit count.
+
+  Our UCT function is different from the standard form.
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.image?\mathrm{UCT}_i%20%3D%20\frac{w_i}{n_i}%20%2B%20C\,\sqrt{\frac{\ln%20N}{n_i}}%20%2B%20\frac{H_i}{1%20%2B%20n_i}" alt="UCT formula" />
+</p>
+
+- **\(w_i\)**: total wins at child node *i*.  
+- **\(n_i\)**: visit count of child node *i*.  
+- **\(N\)**: visit count of the parent node.  
+- **\(C\)**: exploration constant (balances exploration vs. exploitation).  
+- **\(H_i\)**: heuristic score of child node *i*.  
+
+
+**Heuristic Bias**  
+   <img src="https://latex.codecogs.com/svg.image?\frac{H_i}{1+n_i}" alt="Heuristic Bias" />  
+   Gives an early boost to high-heuristic nodes; this term decays as *n*_i grows.
+
+Pure UCT can waste precious early simulations exploring clearly bad moves. By injecting a decaying “progressive bias” drawn from our domain‐specific heuristic Hi, we guide the search toward promising actions initially. As ni grows, that bias naturally fades so that long-run behavior still converges to true win-rate estimates rather than being dominated by the heuristic.
+
 
 - **Simulation Policy**  
   During rollouts, the agent uses a simplified greedy heuristic that:
@@ -46,15 +66,14 @@ This policy allows for efficient, goal-directed simulations without relying on r
   For non-terminal states in rollouts, we apply a heuristic score to approximate win potential, enabling early backpropagation even if the game doesn't reach completion.
 
 - **Simulation Depth and Iteration Budget**  
-  - Rollout Depth: Simulations proceed up to 5 combined turns (player + opponent), or until a win condition is detected.
+  - Rollout Depth: Simulations proceed up to 6 combined turns (player + opponent), or until a win condition is detected.
   - Iteration Budget:
-    - Up to 400 iterations per root node during the 15s pregame phase.
     - Runtime-limited to ~0.9s per move during gameplay, typically allowing ~50–100 iterations depending on board complexity.
 
 [Back to top](#table-of-contents)
 
 ### Experiments
-The initial performance of the model is winning 29 games out of 40 games (72.5%).
+The initial performance of the model is winning 22 games out of 40 games. When we develop the MCTS, we turn the FREEDOM = True, prevent any timeout errors. After that, we set up the time limit to under 1 second.
 
 We have conducted six experiments to test potential improvements:
 
@@ -69,7 +88,15 @@ The agent achieved a 22/40 win rate, which was consistently lower than our previ
 
 This baseline demonstrated the importance of adding domain knowledge to guide simulations, as random playouts diluted learning signals and led to poor decision quality.
 
-**2. Heuristic-Guided Rollouts (Implemented)**
+**2. Early Heuristic Backpropagation**
+
+In many rollouts, simulations would not reach a terminal game outcome due to time limits or rollout depth. To improve reward signal quality, we modified the backpropagation strategy:
+- If the game did not reach a win/loss, we returned a heuristic evaluation of the resulting board.
+- This heuristic included metrics such as alignment potential and fork possibilities.
+
+This helped **stabilise backpropagation and improved rollout feedback quality. And have implemented it in the basic agent.
+
+**3. Heuristic-Guided Rollouts (Implemented)**
 
 To improve the simulation policy, we replaced random playouts with a greedy, heuristic-based simulation. During each rollout, the agent:
 - Attempted to complete its own sequences.
@@ -79,35 +106,31 @@ To improve the simulation policy, we replaced random playouts with a greedy, heu
 This change led to a slight performance improvement, reaching 24–25 wins out of 40 games on average. While this improvement is not enough to outperform GBFS, it significantly improved rollout consistency and convergence, showing that goal-directed rollouts are far more effective than random ones.
   <img width="1478" alt="image" src="https://github.com/user-attachments/assets/808be35f-950d-43d5-a2c6-53af5dc77217" />
 
-**3. Early Heuristic Backpropagation**
 
-In many rollouts, simulations would not reach a terminal game outcome due to time limits or rollout depth. To improve reward signal quality, we modified the backpropagation strategy:
-- If the game did not reach a win/loss, we returned a heuristic evaluation of the resulting board.
-- This heuristic included metrics such as alignment potential and fork possibilities.
-
-This tweak helped **stabilise backpropagation and improved rollout feedback quality. Although it didn’t drastically improve win rate alone, it laid the groundwork for more informed tree growth and better node selection.
 
 **4. Extended Rollout Depth (5 → 7)**
 
 We experimented with increasing the rollout depth from 5 to 7 turns (including both agent and opponent actions) in hopes of capturing deeper strategic consequences. While this allowed the agent to simulate more future interactions and occasionally detect stronger plays, it also introduced two major downsides:
   - Fewer rollouts due to longer simulations per iteration
-  - More frequent timeouts, especially in complex board states （有没有尝试别的方法解决timeout issues?)
+  - More frequent timeouts, especially in complex board states-->To address this, we give a higher safe time buffer to the agent (which is less than 0.91 seconds)
 
-Overall, the gain in depth came at the cost of reduced exploration, which negatively impacted the breadth of the search tree.
+Overall, the gain in depth came at the cost of reduced exploration, which negatively impacted the breadth of the search tree. And even with 5s thinking time, the outcome did not have a significant improvement
 
-**5. Aggressive Tree Expansion**
+**5. Other Implemented Improvements after Experiments**
 
-We lowered the UCT `c_param` to reduce exploration and prioritise exploiting higher-value nodes. The rationale was that with tight time budgets, we should favour reliable known moves over uncertain alternatives. This adjustment led to more consistent decisions and marginally improved game outcomes. However, it introduced a new risk: the agent sometimes became trapped in a local optimum, repeatedly choosing a suboptimal move because it lacked exploration data on alternatives.
+To improve MCTS efficiency and reuse, we introduced three key modifications: First, **Ignore Draft Matching** simplifies tree traversal by focusing solely on placement locations, disregarding the specific draft card used—this reduces node duplication and improves subtree matching. Second, a **Unified Rollout Depth Limit** ensures consistent simulation depth by capping all rollouts to a fixed number of player actions (e.g., 6-8), rather than varying with draft count, leading to more stable and comparable planning. Lastly, **Dynamic Child Expansion** pre-generates legal moves when the hand changes, improving rollout consistency and enabling better reuse across similar game states. Specifically, in this action generator, the opponent can place in any coordinates.
 
-This experiment highlighted the delicate trade-off between exploration and exploitation, especially under strict timing constraints.
+**6.sort the child node**
 
-**6. Other Implemented Improvements after Experiments**
-
-To improve MCTS efficiency and reuse, we introduced three key modifications: First, **Ignore Draft Matching** simplifies tree traversal by focusing solely on placement locations, disregarding the specific draft card used—this reduces node duplication and improves subtree matching. Second, a **Unified Rollout Depth Limit** ensures consistent simulation depth by capping all rollouts to a fixed number of player actions (e.g., 5), rather than varying with draft count, leading to more stable and comparable planning. Lastly, **Dynamic Child Expansion** pre-generates all legal moves when the hand changes, improving rollout consistency and enabling better reuse across similar game states.
+In practice, the number of legal moves at each MCTS expansion can be very large, making it impossible to explore every untried action within our time budget. To focus the search on the most promising options, we first compute a lightweight heuristic score for each candidate move, then sort the entire action list in descending order of that score. During expansion, we iterate through this pre-sorted list—visiting the highest-scoring actions first—before falling back to lower-scoring ones. This batched heuristic sorting biases early search effort toward the moves most likely to succeed, while still allowing MCTS’s UCT formula to guide deeper exploration as time permits.
 
 **7. Comparison with GBFS (Same Time Budget)**
 
 We conducted head-to-head matches between the MCTS agent and our final GBFS agent, both restricted to 1-second decision windows per move. The MCTS agent usually lost, achieving a win rate of ~40–50%. This confirmed that, while MCTS offers theoretical advantages in deep planning, the limited iteration budget and simulation overhead lead to suboptimal performance.
+
+**7. Roll out only with original draft card"
+
+In the simulation phase, instead of dynamically drawing“Known” available cards, the first 5 drafts are used until the depth limit is reached. By doing this, we can save some time. It reduces state differences and allows for better reuse of search paths during rollout.
 
 ### Solved Challenges
 
@@ -190,4 +213,11 @@ While our MCTS agent offers deeper foresight and flexible decision-making, it co
 - **Heuristic-to-UCT Weight Decay**  
   Early in MCTS, emphasise heuristic guidance (bias); as simulations progress, decay the heuristic weight to rely more on visit statistics. This dynamic tuning aligns exploration-exploitation with tree maturity.
 
+- **Opponent information tracking**
+Traditional MCTS assume that the environment is fully observable, but the opponent's hand in the sequence is unknown. Try to record each draft (especially if you count 4 drafts) during the fight, and build a more accurate simulation based on that information.
+
+- **Better simulator**
+  Since we can attempt to track and record the opponent’s drafted cards, the game becomes increasingly deterministic as more information is revealed. Once we successfully identify 4 of the opponent's 5 cards, we can switch to using Minimax to simulate future moves more accurately. Alternatively, if time constraints are relaxed, a hybrid strategy can be adopted—using Minimax in the shallow layers of the game tree for precise decision-making, and switching to MCTS in deeper layers to balance computational cost and exploration.
+
+  
 [Back to top](#table-of-contents)
