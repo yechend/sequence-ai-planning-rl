@@ -123,7 +123,7 @@ This experiment highlighted the delicate trade-off between exploration and explo
 
 To improve MCTS efficiency and reuse, we introduced three key modifications: First, **Ignore Draft Matching** simplifies tree traversal by focusing solely on placement locations, disregarding the specific draft card used—this reduces node duplication and improves subtree matching. Second, a **Unified Rollout Depth Limit** ensures consistent simulation depth by capping all rollouts to a fixed number of player actions (e.g., 6-8), rather than varying with draft count, leading to more stable and comparable planning. Lastly, **Dynamic Child Expansion** pre-generates legal moves when the hand changes, improving rollout consistency and enabling better reuse across similar game states. Specifically, in this action generator, the opponent can place in any coordinates.
 
-**7.sort the child node**
+**7. Sort the child node**
 
 In practice, the number of legal moves at each MCTS expansion can be very large, making it impossible to explore every untried action within our time budget. To focus the search on the most promising options, we first compute a lightweight heuristic score for each candidate move, then sort the entire action list in descending order of that score. During expansion, we iterate through this pre-sorted list—visiting the highest-scoring actions first—before falling back to lower-scoring ones. This batched heuristic sorting biases early search effort toward the moves most likely to succeed, while still allowing MCTS’s UCT formula to guide deeper exploration as time permits.
 
