@@ -1,7 +1,5 @@
 # AI Method 3 - Approximate Q-learning
-We selected Q-learning as our third technique due to both its theoretical strengths and its alignment with our team's early design ideas. In our preliminary submission, each team member developed a unique agent with different strategic focuses—one emphasized center control, another prioritized immediate sequence building, while the third focused on long-term board influence.
-
-This diversity in strategies sparked an idea: could we build a meta-agent that learns to dynamically combine and prioritize these strategies depending on the situation and opponent? This concept mirrors the essence of feature-based Q-learning, where an agent learns to assign weights to multiple strategic features to evaluate the quality of actions.
+This project focuses on building a strategic agent for the board game Sequence, initially using a customised Two-Step Greedy Best-First Search (GBFS)，then we use MCTS as our second method. In our preliminary submission, each team member developed a unique agent with different strategic focuses—one emphasized center control, another prioritized immediate sequence building, while the third focused on long-term board influence.This diversity in strategies sparked an idea: could we build a meta-agent that learns to dynamically combine and prioritize these strategies depending on the situation and opponent? This concept mirrors the essence of feature-based Q-learning, where an agent learns to assign weights to multiple strategic features to evaluate the quality of actions.
 
 Upon deeper reflection, we realized that our goal—to combine different heuristics in a flexible, data-driven way—is essentially what Q-learning achieves when implemented with hand-crafted features. It provides a structured yet adaptable framework to learn from experience, optimize long-term performance, and ultimately evolve beyond static rule-based decision making. Therefore, we adopted Q-learning with feature-based function approximation to realize this vision in a principled and scalable manner.
 # Table of Contents
@@ -10,12 +8,12 @@ Upon deeper reflection, we realized that our goal—to combine different heurist
 * [Experiments](#experiments)
 * [Solved challenges](#solved-challenges)
 * [Trade-offs](#trade-offs)
-    - [Advantages](#advantages)
-    - [Disadvantages](#disadvantages)
+  - [Advantages](#advantages)
+  - [Disadvantages](#disadvantages)
 * [Future improvements](#future-improvements)
 
 ### Motivation
-Approximate Q-learning offered a compelling answer. By using feature-based linear value approximation, it allows the agent to generalize across states, learn from rewards over time, and dynamically weight different board-level patterns. The selected features were inspired by our best-performing heuristic agent and encoded critical strategic signals.But after thorough testing, this method was not implemented due to the bad performance and we need to select  so many suitbale features that could get the higher win rates.
+Approximate Q-learning offered a compelling answer. By using feature-based linear value approximation, it allows the agent to generalize across states, learn from rewards over time, and dynamically weight different board-level patterns. The selected features were inspired by our best-performing heuristic agent and encoded critical strategic signals.But after thorough testing, this method was not implemented due to the bad performance （2/40）and we need to select  so many suitbale features that could get the higher win rates.
 
 
 [Back to top](#table-of-contents)
@@ -48,6 +46,7 @@ Problem Modeling
 
 ### Experiments
 We have conducted four key experiments to test the impact of different design choices in our Q-learning agent:
+![image](https://github.com/user-attachments/assets/ffeea3cf-3e49-4e6d-9592-4a0f86d0b02e)
 
 ---
 
@@ -105,6 +104,7 @@ We conducted head-to-head experiments between our Q-learning agent and two stron
 
 ### Summary
 - Win rates remain low (~5%) against well-designed heuristics, showing limitations of linear feature-based Q-learning in this game.
+
 
 [Back to top](#table-of-contents)
 
@@ -177,9 +177,9 @@ Despite its simplicity and interpretability, our Q-learning agent can be signifi
 
 - **Shaped Intermediate Rewards**  
   Instead of only rewarding completed sequences, provide small rewards for forming intermediate patterns:
-    - `+0.1` for `live_three`
-    - `+0.2` for `live_four`
-    - `-0.3` if opponent forms `live_four`
+  - `+0.1` for `live_three`
+  - `+0.2` for `live_four`
+  - `-0.3` if opponent forms `live_four`
 
 - **Score Delta-based Rewards**  
   Use the change in agent score:  
