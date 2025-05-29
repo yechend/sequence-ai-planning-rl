@@ -9,7 +9,7 @@ ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.1
 LEARNING = False
-WEIGHT_FILE = "./agents/t_068_directory/weights1.json"
+WEIGHT_FILE = "./agents/t_068/weights1.json"
 THINK_TIME_LIMIT = 0.95
 
 FEATURES = [
