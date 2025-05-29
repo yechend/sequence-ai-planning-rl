@@ -24,7 +24,7 @@ agents/
 │   ├── weights1.json           # Pre-trained weights or Q-values
 │   └── __pycache__/            # Auto-generated cache for faster imports
 │
-└── AgentsREADME.md             # Documentation for individual agents and team strategy
+└── AgentsREADME.md             # Documentation for individual agents
 ```
 ---
 
