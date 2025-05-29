@@ -173,7 +173,19 @@ While we acknowledge that the trained policy model (even under curriculum learni
    
 The results supported our hypothesis that the naively trained policy model tends to overfit to simple board patterns and fails to generalise well to more complex situations. It provided no noticeable performance improvement and, in several cases, selected clearly suboptimal moves despite better available options. Additionally, the strict 1-second decision limit made it impractical to perform deeper simulations or corrections based on policy suggestions.
 
-Although the model did not enhance gameplay performance, these experiments offered valuable insights. They highlighted key limitations of offline-trained policies and helped inform how future self-play or imitation learning approaches might be better designed and integrated.
+---
+
+### Collaboration Note
+
+The core agent and the above experiments — achieving up to **80% win rate** and **32/40** in #submission conditions — were conducted by **Yechen Deng**.
+
+<img width="1478" alt="image" src="https://github.com/user-attachments/assets/758afc8a-dc88-4c92-aad4-7f34e2d85c6f" />
+
+Further refinements and experimental enhancements were conducted by **Minghao Cai**, building on the established foundation to improve the final agent — achieving win rates of up to **85%** and **34/40** in #submission conditions.
+
+<img width="1478" alt="image" src="https://github.com/user-attachments/assets/caf3046a-8e83-441f-8f54-1dc1222c804f" />
+
+---
 
 **8. Teacher Cai**
 
