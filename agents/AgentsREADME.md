@@ -51,8 +51,8 @@ Advanced or learning-based agents developed for competition:
 - `curriculum_trainer.py`: AI Method 1 - Trainer for curriculum-based offline learning policy
 - `train_sequence_policy.py`: AI Method 1 - Script to train a simple offline learning policy
 - `weights1.json`: AI Method 3 - Stores learned weights or Q-values for inference
-- `policy_value_model.h5  `: AI Method 1 - Pretrained simple offline policy using `train_sequence_policy.py`
-- `policy_value_model_curriculum.keras `: AI Method 1 - Pretrained curriculum trained offline policy using `curriculum_trainer.py`
+- `policy_value_model.h5`: AI Method 1 - Pretrained simple offline policy using `train_sequence_policy.py`
+- `policy_value_model_curriculum.keras`: AI Method 1 - Pretrained curriculum trained offline policy using `curriculum_trainer.py`
 
 ---
 
