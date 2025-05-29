@@ -2,8 +2,8 @@
 
 This directory contains different agent implementations and supporting modules for playing and training strategies in the Sequence game environment.
 
+---
 ## Folder Structure
-
 ```plaintext
 agents/
 │
@@ -14,7 +14,7 @@ agents/
 │   └── timeout.py              # Agent that times out or does nothing
 │
 ├── t_068/
-│   ├── 26win heuristic.py      # Heuristic-based agent optimized for 26-win scenarios
+│   ├── 26win heuristic.py      # Heuristic-based agent optimised for 26-win scenarios
 │   ├── Qlearning1.py           # Q-Learning based agent implementation
 │   ├── curriculum_trainer.py   # Curriculum training for policy learning
 │   ├── myTeam.py               # Main entry point for the final agent
@@ -25,6 +25,8 @@ agents/
 │   └── __pycache__/            # Auto-generated cache for faster imports
 │
 └── AgentsREADME.md             # Documentation for individual agents and team strategy
+```
+---
 
 ## Agent Categories
 
@@ -37,10 +39,10 @@ Provide simple behaviours for benchmarking:
 
 ### Custom Agents (`t_068/`)
 Advanced or learning-based agents developed for competition:
-- `26win heuristic.py`: Heuristic agent optimised for 26-win strategies
-- `Qlearning1.py`: Reinforcement Learning agent using Q-Learning
+- `26win heuristic.py`: AI Method 3 - Heuristic agent optimised for 26-win strategies
+- `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning
 - `preFinal.py`: AI Method 1 - Preliminary heuristic model
-- `myTeam.py`: AI Method 1 - Final Agent Two-Step Greedy Best-First Search
+- `myTeam.py`: AI Method 1 - **Final Agent Two-Step Greedy Best-First Search**
 
 ### Training and Offline Policy Utilities
 - `sequence_state.py`: AI Method 1 - Encodes the game state for learning and inference
