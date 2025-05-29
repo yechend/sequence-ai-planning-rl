@@ -2,7 +2,7 @@
 
 This project focuses on building a competitive agent for the board game Sequence using a strategic AI-based approach. While various techniques such as Monte Carlo Tree Search (MCTS) and Q-learning were explored during development, our final agent employs a customised Two-Step Greedy Best-First Search (GBFS). This technique consistently outperformed alternatives in terms of win rate and decision reliability within the given time constraints.
 
-Our final agent incorporates realistic gameplay elements such as random draft card draws, dead card identification, and discard logic. We also experimented with offline policy model guidance to aid move selection, although  it was not deployed in the final agent beyond experimental trials. The best recorded performance of our final agent under #submission achieved a win count of 35 out of 40 games.
+Our final agent incorporates realistic gameplay elements such as random draft card draws, dead card identification, and discard logic. We also experimented with offline policy model guidance to aid move selection, although  it was not deployed in the final agent beyond experimental trials. The best recorded performance of our final agent under #submission achieved a win count of 34 out of 40 games.
 
 # Table of Contents
   * [Motivation](#motivation)
@@ -209,7 +209,7 @@ While our Two-Step GBFS agent achieves a strong balance between tactical foresig
 #### *Advantages*  
 
 - **Strong Performance in Constrained Settings**  
-  Achieves high win rates (up to **87.5%**, and **35/40** in #submission conditions using only 1-second decision windows.
+  Achieves high win rates (up to **85%**, and **34/40** in #submission conditions using only 1-second decision windows.
 
 - **Interpretable Heuristic Design**  
   Uses a transparent, domain-informed heuristic function to evaluate alignment potential, centre control, and fork creation. Easy to debug and extend.
