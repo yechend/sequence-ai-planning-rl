@@ -18,6 +18,7 @@ agents/
 │   ├── Qlearning1.py                         # Q-Learning based agent implementation
 │   ├── curriculum_trainer.py                 # Curriculum training for policy learning
 │   ├── myTeam.py                             # Main entry point for the final agent
+│   ├── MCTS.py                               # MCTS based agent implementation
 │   ├── preFinal.py                           # Preliminary version of Two-Step Greedy
 │   ├── sequence_state.py                     # State representation for the Sequence game
 │   ├── train_sequence_policy.py              #Training against random for policy learning
@@ -41,10 +42,11 @@ Provide simple behaviours for benchmarking:
 
 ### Custom Agents (`t_068/`)
 Advanced or learning-based agents developed for competition:
-- `26win heuristic.py`: AI Method 3 - Heuristic agent optimised for 26-win strategies
-- `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning（modify based on the 26win heuristic.py）
 - `preFinal.py`: AI Method 1 - Preliminary heuristic model
 - `myTeam.py`: AI Method 1 - **Final Agent Two-Step Greedy Best-First Search**
+-  `myTeam.py`: AI Method 2 - Monte Carlo tree search
+-  `26win heuristic.py`: AI Method 3 - Heuristic agent optimised for 26-win strategies
+- `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning（modify based on the 26win heuristic.py）
 
 ### Training and Offline Policy Utilities
 - `sequence_state.py`: AI Method 1 - Encodes the game state for learning and inference
