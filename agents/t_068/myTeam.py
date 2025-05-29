@@ -61,7 +61,8 @@ class myAgent(Agent):
         return aligned >= 3 and open_ends >= 1
 
     def HeuristicBoard(self, board, coords, state, agent_id):
-        # Compute the move’s heuristic
+        # our goal is to have sequences of 5 chips in a row and do not let the opponent do so.
+        # Therefore, we give the reward based on the number of sequences of aligned chips, which lead the agent to win(to get 5 aligned)
         if coords is None:          
             return 0
 
@@ -164,7 +165,7 @@ class myAgent(Agent):
         winning_move = self.FindImmediateWin(actions, game_state, self.id)
         if winning_move:
             return winning_move
-        action = self.TwoStepLookaheadSearch(actions, game_state, start_time)
+        action = self.TwoStepGBFSearch(actions, game_state, start_time)
 
         if plan_draft is not None:
                 action['draft_card'] = plan_draft
@@ -287,8 +288,9 @@ class myAgent(Agent):
 
         return actions
 
-    def TwoStepLookaheadSearch(self, actions, state, start_time):
-        # Perform a two-step greedy lookahead, scoring each first move plus best reply, and return the best.
+    def TwoStepGBFSearch(self, actions, state, start_time):
+        # Perform a two-step greedy lookahead, our goal is to have sequences of 5 chips in a row and do not let the opponent do so.
+        # scoring each first move plus best reply, and return the best.
         best_score, best_action = float('-inf'), None
         agent_id = self.id
         original_hand = state.agents[agent_id].hand
