@@ -128,7 +128,7 @@ In practice, the number of legal moves at each MCTS expansion can be very large,
 
 We conducted head-to-head matches between the MCTS agent and our final GBFS agent, both restricted to 1-second decision windows per move. The MCTS agent usually lost, achieving a win rate of ~40–50%. This confirmed that, while MCTS offers theoretical advantages in deep planning, the limited iteration budget and simulation overhead lead to suboptimal performance.
 
-**7. Roll out only with original draft card"
+**8. Roll out only with original draft card"**
 
 In the simulation phase, instead of dynamically drawing“Known” available cards, the first 5 drafts are used until the depth limit is reached. By doing this, we can save some time. It reduces state differences and allows for better reuse of search paths during rollout.
 
