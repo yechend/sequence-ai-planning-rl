@@ -44,7 +44,7 @@ Provide simple behaviours for benchmarking:
 Advanced or learning-based agents developed for competition:
 - `preFinal.py`: AI Method 1 - Preliminary heuristic model
 - `myTeam.py`: AI Method 1 - **Final Agent Two-Step Greedy Best-First Search**
--  `myTeam.py`: AI Method 2 - Monte Carlo tree search
+-  `MCTS.py`: AI Method 2 - Monte Carlo tree search
 -  `26win heuristic.py`: AI Method 3 - Heuristic agent optimised for 26-win strategies
 - `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning（modify based on the 26win heuristic.py）
 
