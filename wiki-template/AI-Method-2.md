@@ -44,7 +44,8 @@ In our MCTS-based agent, the decision-making process is structured around four c
 
 **Heuristic Bias**  
    <p align="center">  <img src="https://latex.codecogs.com/svg.image?\frac{H_i}{1+n_i}" alt="Heuristic Bias" />  
-Gives an early boost to high-heuristic nodes; this term decays as *n*_i grows.
+
+    Gives an early boost to high-heuristic nodes; this term decays as *n*_i grows.
 Pure UCT can waste precious early simulations exploring clearly bad moves. By injecting a decaying “progressive bias” drawn from our domain‐specific heuristic Hi, we guide the search toward promising actions initially. As ni grows, that bias naturally fades so that long-run behavior still converges to true win-rate estimates rather than being dominated by the heuristic.
 
 
