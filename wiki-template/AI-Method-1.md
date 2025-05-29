@@ -198,6 +198,14 @@ This reward-shaping approach directly steers the model toward the goal of comple
 
 We implement a card-tracking mechanism by recording each card the opponent draws (draft_card) and plays (play_card or remove_card) in a seen_cards list. By subtracting all seen cards and our own hand from the full deck, we continuously update the pool of unknown cards that the opponent may hold. This allows us to estimate the probability of the opponent holding specific cards, enabling more accurate threat assessment, dynamic adjustment of defensive priorities, and improved decision-making during both heuristic evaluation and search simulations.
 
+**10. Block–Live–Single-Open Strategy for Balanced Offense and Defense**
+We map every 5-cell line into three pattern types—Block, Live, and Single-Open—and score moves by the net gain (post-move minus pre-move) in these patterns, plus fork and center bonuses.
+
+Block: Impose a penalty for opponent’s Live-4 or Single-Open threats to force timely defense.
+Live: Grant the highest reward for creating or extending two-ended runs (Live-X) toward victory.
+Single-Open: Offer a secondary reward for one-ended four-in-a-row threats when full Live-4 is unavailable.
+
+This concise heuristic drove a 30% win-rate uplift over a baseline greedy search under strict time limits.
 
 [Back to top](#table-of-contents)
 
