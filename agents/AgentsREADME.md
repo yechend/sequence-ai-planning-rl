@@ -8,23 +8,25 @@ This directory contains different agent implementations and supporting modules f
 agents/
 │
 ├── generic/
-│   ├── blockerAgent.py         # Agent that blocks opponent strategies
-│   ├── first_move.py           # Agent that handles initial moves heuristically
-│   ├── random.py               # Agent that makes random valid moves
-│   └── timeout.py              # Agent that times out or does nothing
+│   ├── blockerAgent.py                       # Agent that blocks opponent strategies
+│   ├── first_move.py                         # Agent that handles initial moves heuristically
+│   ├── random.py                             # Agent that makes random valid moves
+│   └── timeout.py                            # Agent that times out or does nothing
 │
 ├── t_068/
-│   ├── 26win heuristic.py      # Heuristic-based agent optimised for 26-win scenarios
-│   ├── Qlearning1.py           # Q-Learning based agent implementation
-│   ├── curriculum_trainer.py   # Curriculum training for policy learning
-│   ├── myTeam.py               # Main entry point for the final agent
-│   ├── preFinal.py             # Preliminary version of Two-Step Greedy
-│   ├── sequence_state.py       # State representation for the Sequence game
-│   ├── train_sequence_policy.py# Training against random for policy learning
-│   ├── weights1.json           # Pre-trained weights or Q-values
-│   └── __pycache__/            # Auto-generated cache for faster imports
+│   ├── 26win heuristic.py                    # Heuristic-based agent optimised for 26-win scenarios
+│   ├── Qlearning1.py                         # Q-Learning based agent implementation
+│   ├── curriculum_trainer.py                 # Curriculum training for policy learning
+│   ├── myTeam.py                             # Main entry point for the final agent
+│   ├── preFinal.py                           # Preliminary version of Two-Step Greedy
+│   ├── sequence_state.py                     # State representation for the Sequence game
+│   ├── train_sequence_policy.py              #Training against random for policy learning
+│   ├── weights1.json                         # Pre-trained weights or Q-values
+│   ├── policy_value_model.h5                 # Pre-trained plolicy model for simple training
+│   ├── policy_value_model_curriculum.keras   # Pre-trained plolicy model for curriculum training
+│   └── __pycache__/                          # Auto-generated cache for faster imports
 │
-└── AgentsREADME.md             # Documentation for individual agents
+└── AgentsREADME.md                           # Documentation for individual agents
 ```
 ---
 
