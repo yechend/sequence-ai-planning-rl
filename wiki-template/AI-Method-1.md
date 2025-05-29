@@ -19,7 +19,7 @@ Our final agent incorporates realistic gameplay elements such as random draft ca
 GBFS was chosen for its ability to perform focused heuristic evaluations in a limited time window (≤ 1s per move). The two-step lookahead extends the depth of planning without exponential time cost. It allowed the agent to prioritise high-impact sequences while retaining reactivity.
 
 Alternative approaches considered:
--	Q-learning: Ultimately rejected, as Q-learning failed to converge meaningfully due to sparse, delayed rewards and ineffective function approximation.
+-	Q-learning: Ultimately rejected, as Q-learning failed to converge meaningfully due to sparse, delayed rewards, ineffective function approximation and feature selections.
 -	MCTS: Initially promising, but led to inconsistent results due to noisy rollouts and variance in simulation depth.
   
 Hence, the GBFS with a two-step enhancement was favoured as the most balanced approach for search depth and runtime feasibility.
