@@ -72,7 +72,7 @@ This policy allows for efficient, goal-directed simulations without relying on r
 [Back to top](#table-of-contents)
 
 ### Experiments
-The initial performance of the model is winning 22 games out of 40 games. When we develop the MCTS, we turn the FREEDOM = True, prevent any timeout errors. After that, we set up the time limit to under 1 second.
+The initial performance of the model is winning 22 games out of 40 games. When we develop the MCTS, we turn the `FREEDOM = True`, prevent any timeout errors. After that, we set up the time limit to under 1 second.
 
 We have conducted six experiments to test potential improvements:
 
