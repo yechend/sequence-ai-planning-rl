@@ -57,4 +57,4 @@ Advanced or learning-based agents developed for competition:
 To use the main team agent:
 
 ```python
-from agents.t_068.myTeam import Agent
+from agents.t_068.myTeam import myAgent
