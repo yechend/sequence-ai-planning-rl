@@ -42,7 +42,7 @@ Provide simple behaviours for benchmarking:
 ### Custom Agents (`t_068/`)
 Advanced or learning-based agents developed for competition:
 - `26win heuristic.py`: AI Method 3 - Heuristic agent optimised for 26-win strategies
-- `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning
+- `Qlearning1.py`: AI Method 3 - Reinforcement Learning agent using Q-Learning（modify based on the 26win heuristic.py）
 - `preFinal.py`: AI Method 1 - Preliminary heuristic model
 - `myTeam.py`: AI Method 1 - **Final Agent Two-Step Greedy Best-First Search**
 
