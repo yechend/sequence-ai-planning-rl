@@ -76,7 +76,7 @@ Rather than evaluating only the immediate action, the agent performs a two-step 
 The initial performance of the model is winning 29 games out of 40 games (72.5%).
 <img width="1378" alt="image" src="https://github.com/user-attachments/assets/dceabbe0-d8a8-485c-b589-9e76f6980f27" />
 
-We have conducted seven thorough experiments to test potential improvements:
+We have conducted nine thorough experiments to test potential improvements:
 
 **1. Advanced Wildcard Strategies**
 
@@ -88,7 +88,7 @@ To comply with a one-second-per-move constraint, this had to be implemented unde
 
 <img width="1378" alt="image" src="https://github.com/user-attachments/assets/18665a14-ca99-4931-8cff-e6899daae822" />
 
-**3. Multi-Step Search - 3-Step Extension**
+**2. Multi-Step Search - 3-Step Extension**
 
 To further enhance the agent’s planning capability, we extended our search depth from two steps to a three-step Greedy Best-First Search. The rationale was to better anticipate the outcome of a sequence of plays and better account for opponent threats or opportunities arising after our initial two actions. This would theoretically allow our agent to block sequences earlier, set up forks more reliably, and avoid short-sighted placements.
 
@@ -102,7 +102,7 @@ To implement this, we modified the existing two-step logic to include one additi
 
 While the 3-step model offered better tactical foresight in theory, it underperformed in practice due to runtime limits, computational overhead, and imperfect modelling of hidden game elements. We thus reverted to a more efficient 2-step GBFS.
 
-**4. Opponent Modelling and Threat Blocking**
+**3. Opponent Modelling and Threat Blocking**
 
 To enhance decision-making, we integrated opponent-aware heuristic tuning and explored basic card inference logic. These adjustments aim to penalise board states that are strategically advantageous to the opponent, aligning with defensive priorities.
 
@@ -128,11 +128,11 @@ To enhance decision-making, we integrated opponent-aware heuristic tuning and ex
 
   While we considered integrating card memory to estimate the likelihood of the opponent possessing a specific card (i.e., if both copies had been seen), this was not ultimately implemented due to complexity and time cost. The agent assumes the worst-case scenario for critical threats, which is a safer but less advanced approach.
 
-**5. Sequence Extension Bonus & Fork Detection (Implemented)**
+**4. Sequence Extension Bonus & Fork Detection (Implemented)**
 
 Since the heuristic function is the core of the agent’s decision-making in the GBFS framework, we initially added a small bonus for placements that would extend to 6-in-a-row under exiting 4-in-a-row (which doesn’t count as a second sequence by rules), recognising the strategic value of overlapping sequence plans. But this did improve the performance due to its limited impact on game outcomes. We then experimented with **fork detection** by evaluating how many sequence lines that position could extend. If a tile contributes to multiple alignment directions, it’s awarded extra points to reflect forming a sequence potential. This refinement raised the local win rate to 55% against the baseline model and was subsequently adopted in our final heuristic design.
 
-**6. Card Discard Logic (Implemented)**
+**5. Card Discard Logic (Implemented)**
 
 We further employed a two-level discard strategy to maintain hand efficiency and avoid wasted turns:
 
@@ -146,7 +146,7 @@ This deployment achieved a 57.5% win rate against our previously refined model f
 <img width="1378" alt="image" src="https://github.com/user-attachments/assets/db5fa0ca-b5f7-4cf2-90e7-ca7f8a83150a" />
 <img width="1378" alt="image" src="https://github.com/user-attachments/assets/ce6ee26c-a1e6-41b9-96ce-5145c72c0eff" />
 
-**7. Offline Self-Play Training & Policy Networks**
+**6. Offline Self-Play Training & Policy Networks**
 
 To better use the 15-second pregame loading time, we explored offline policy training via a **cold-start strategy**. The rationale was to precompute a general decision policy to guide early-game actions before the real-time search activates, reducing reliance on online computation and improving responsiveness. The model takes encoded board states as input and outputs both action probabilities (policy head) and win likelihoods (value head).
 
@@ -187,18 +187,18 @@ Further refinements and experimental enhancements were conducted by **Minghao Ca
 
 ---
 
-**8. Live Strategy**
+**7. Live Strategy**
 The Live strategy turns open-ended sequences (“Live-X”) into reward opportunities, assigning increasing positive rewards to any contiguous run of X chips within a 5-cell line segment whose both ends remain unblocked. By treating Live-2 through Live-5 as reward milestones—reflecting that Live-4 is one move from victory and Live-3 can evolve into crossing threats—every candidate move is evaluated on how much it increases these Live-X rewards while decreasing opponent Live-X penalties.
 
 e.g. the segment _xxxo_ is a Live-3 (three open-ended chips) and earns a higher reward than oxxx_ (a Sleep-3), encouraging the model to prioritize moves that form or extend open threes.
 
 This reward-shaping approach directly steers the model toward the goal of completing a five-in-a-row: moves that create or extend Live-X patterns yield higher reward deltas (post-move minus pre-move), naturally guiding greedy or MCTS agents toward states that bring them closer to the ultimate sequence goal. Combined with fork bonuses and a mild center bias, Live rewards ensure the search focuses on both advancing toward victory and preemptively defending against opponent threats.
 
-**9. Card-tracking opponent hand card**
+**8. Card-tracking opponent hand card**
 
 We implement a card-tracking mechanism by recording each card the opponent draws (draft_card) and plays (play_card or remove_card) in a seen_cards list. By subtracting all seen cards and our own hand from the full deck, we continuously update the pool of unknown cards that the opponent may hold. This allows us to estimate the probability of the opponent holding specific cards, enabling more accurate threat assessment, dynamic adjustment of defensive priorities, and improved decision-making during both heuristic evaluation and search simulations.
 
-**10. Block–Live–Single-Open Strategy for Balanced Offense and Defense**
+**9. Block–Live–Single-Open Strategy for Balanced Offense and Defense**
 
 We map every 5-cell line into three pattern types—Block, Live, and Single-Open—and score moves by the net gain (post-move minus pre-move) in these patterns, plus fork and center bonuses.
 
