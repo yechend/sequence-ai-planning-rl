@@ -13,7 +13,7 @@ agents/
 │   ├── random.py                             # Agent that makes random valid moves
 │   └── timeout.py                            # Agent that times out or does nothing
 │
-├── t_068/
+├── ai_agent/
 │   ├── 26win heuristic.py                    # Heuristic-based agent optimised for 26-win scenarios
 │   ├── Qlearning1.py                         # Q-Learning based agent implementation
 │   ├── curriculum_trainer.py                 # Curriculum training for policy learning
@@ -40,7 +40,7 @@ Provide simple behaviours for benchmarking:
 - `first_move.py`: Specialised logic for the game's first move
 - `timeout.py`: Dummy agent with timeout behaviour
 
-### Custom Agents (`t_068/`)
+### Custom Agents (`ai_agent/`)
 Advanced or learning-based agents developed for competition:
 - `preFinal.py`: AI Method 1 - Preliminary heuristic model
 - `myTeam.py`: AI Method 1 - **Final Agent Two-Step Greedy Best-First Search**

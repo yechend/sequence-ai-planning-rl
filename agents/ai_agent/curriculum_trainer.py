@@ -106,7 +106,7 @@ def build_model(input_dim, output_dim):
 def train_curriculum_model():
     opponents = [
         ("agents.generic.random.Agent", 0.48),
-        ("agents.t_068.test05.myAgent", 0.48),
+        ("agents.ai_agent.test05.myAgent", 0.48),
         ("agents.generic.blockerAgent.myAgent", 0.04)
     ]
     print("Starting curriculum training...")
