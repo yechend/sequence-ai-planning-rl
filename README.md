@@ -37,7 +37,36 @@ The agent is designed to:
 ---
 
 ## System Architecture
+## Project Structure
 
+```text
+sequence-ai-planning-rl
+├── agents/                    # AI agent implementations (heuristic, RL, MCTS, hybrid)
+│   ├── ai_agent/              # Custom high-performing agents developed in this project
+│   └── generic/               # Baseline/reference agents for benchmarking
+│
+├── docker/                    # Docker environment for reproducible execution
+│   ├── Dockerfile             # Container definition
+│   └── *.sh                   # Scripts for setup, execution, and cleanup
+│
+├── img/                       # Images used in documentation and README
+│   └── sequence.png           # Game board visualisation
+│
+├── Sequence/                  # Core game environment implementation
+│   ├── sequence_model.py      # Game logic and state transitions
+│   ├── sequence_utils.py      # Helper functions and constants
+│   ├── sequence_displayer.py  # Visualisation and rendering
+│   └── sequence.md            # Game rules and environment documentation
+│
+├── game.py                    # Entry point for game setup and configuration
+├── general_game_runner.py     # Main simulation engine for running matches
+├── template.py                # Base template for implementing new agents
+├── utils.py                   # Shared utilities across the project
+│
+├── requirements.txt           # Python dependencies
+├── README.md                  # Project overview and usage instructions
+└── LICENSE                    # License information
+```
 ### Core Components
 
 * `sequence_model.py`
