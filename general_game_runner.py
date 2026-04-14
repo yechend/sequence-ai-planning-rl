@@ -1,12 +1,6 @@
 # INFORMATION ------------------------------------------------------------------------------------------------------- #
-
-
 # Author:  Steven Spratley, extending code by Guang Ho and Michelle Blom
 # Date:    12/02/23
-# Purpose: Defines a general game runner for the COMP90054 competitive game environment
-# Notes:   This port is incomplete, and will req
-
-
 # IMPORTS ------------------------------------------------------------------------------------------------------------#
 
 

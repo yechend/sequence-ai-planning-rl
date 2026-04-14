@@ -1,5 +1,4 @@
 # INFORMATION ------------------------------------------------------------------------------------------------------- #
-
 # Author:  Steven Spratley, extending code by Guang Ho and Michelle Blom
 # Date:    04/01/2021
 # Purpose: Implements a Game class to run implemented games for this framework.
