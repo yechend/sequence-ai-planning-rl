@@ -68,18 +68,17 @@ sequence-ai-planning-rl
 └── LICENSE                    # License information
 ```
 ### Core Components
+- **Game Environment (`sequence_model.py`)**  
+  Handles state transitions, rule enforcement, and game logic
 
-* `sequence_model.py`
-  Game environment and state transition logic
+- **Decision-Making Agents (`agents/`)**  
+  Implements multiple AI strategies including heuristic search, MCTS, and RL-based approaches
 
-* `agents/...`
-  AI agent implementations (search, RL, hybrid strategies)
+- **Simulation Engine (`general_game_runner.py`)**  
+  Runs matches, evaluates agents, and manages experiments
 
-* `general_game_runner.py`
-  Simulation engine for running matches and experiments
-
-* `sequence_utils.py`
-  Shared constants and helper utilities
+- **Evaluation Utilities (`sequence_utils.py`)**  
+  Provides shared scoring logic and helper functions
 
 ---
 
