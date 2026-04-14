@@ -81,4 +81,3 @@ class Displayer:
     def EndGame(self,game_state,scores):
         utils.raiseNotDefined()
         pass
-

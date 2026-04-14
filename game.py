@@ -210,4 +210,3 @@ class GameReplayer:
             
         if self.displayer is not None:
             self.displayer.EndGame(self.game_rule.current_game_state,self.scores)
-   
