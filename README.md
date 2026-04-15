@@ -40,7 +40,7 @@ The agent is designed to:
 ## Project Structure
 
 ```text
-sequence-ai-planning-rl
+sequence-ai-planning-rl/
 ├── agents/                    # AI agent implementations (heuristic, RL, MCTS, hybrid)
 │   ├── ai_agent/              # Custom high-performing agents developed in this project
 │   └── generic/               # Baseline/reference agents for benchmarking
